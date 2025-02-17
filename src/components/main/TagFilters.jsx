@@ -102,7 +102,7 @@ const TagFilters = ({
                 {contentData[key].map((item, index) => (
                   <button
                     key={`${key}-${index}`}
-                    className={`px-4 py-2 rounded-full text-xs cursor-pointer focus:outline-none ${
+                    className={`px-4 py-2 rounded-full text-xs cursor-pointer focus:outline-none transition-colors duration-200 ${
                       tempSelectedItems[key]?.includes(item)
                         ? 'bg-blue-500 hover:bg-blue-600 text-white shadow'
                         : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
