@@ -82,7 +82,11 @@ const HistoryList = ({ historyList, onItemClick }) => {
               >
                 <BiMessageSquareDetail className="text-base text-gray-600" />
                 <span className="text-sm">
-                  {chat.title || "제목 없음"}
+                  {chat.title
+                    ? chat.title.length > 13
+                      ? chat.title.slice(0, 13) + "..."
+                      : chat.title
+                    : "제목 없음"}
                 </span>
               </div>
             )}
