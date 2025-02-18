@@ -91,8 +91,11 @@ const Header = ({ onHistorySelect }) => {
           <button onClick={toggleMenu} className="absolute left-2 text-xl block">
             <BsLayoutTextSidebarReverse />
           </button>
-          <h1 className="inline-block text-lg font-semibold text-gray-800">
-            고전문학
+          <h1
+            className="inline-block text-lg font-semibold text-gray-800"
+            onClick={createThread}
+          >
+            고전 스토리 생성
           </h1>
           <button className="absolute right-2 text-xl block" onClick={createThread}>
             <FaRegEdit />
