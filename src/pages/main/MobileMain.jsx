@@ -156,68 +156,43 @@ const MobileMain = ({ historyData }) => {
         async (messageId, text, selectedItems) => {
             setIsLoading(true)
             try {
-                // 메시지 리스트 수정
-                setMessageList((prev) => {
-                    const newMessages = [...prev]
-                    const lastUserMessageIndex = newMessages
-                        .slice()
-                        .reverse()
-                        .findIndex((message) => message.type === 'user')
-
-                    if (lastUserMessageIndex > -1) {
-                        newMessages[
-                            newMessages.length - lastUserMessageIndex - 1
-                        ] = {
-                            ...newMessages[
-                                newMessages.length - lastUserMessageIndex - 1
-                            ],
-                            text,
-                        }
-                    }
-                    return newMessages
-                })
-
+                // 수정된 사용자 메시지를 새 메시지로 추가하여 기존 메시지를 보존합니다.
+                const newUserMessage = {
+                    id: Date.now(),
+                    text,
+                    type: 'user',
+                    parentId: messageId, // 원본 메시지와 연결 (옵션)
+                }
+                setMessageList((prev) => [...prev, newUserMessage])
+    
                 console.log('------ updateLastUserMessage ------', text)
-
+    
                 // 고전문학 데이터 생성 요청 (API 호출)
                 const retrieveResponse = await retrieveClassicalLiterature({
                     inputValue: text,
                     selectedItems,
                 })
-
+    
                 console.log('------ retrieveResponse ------', retrieveResponse)
-
-                // API 응답이 성공적으로 도착했을 경우, 기존의 마지막 AI 메시지를 수정
-                if (retrieveResponse?.content?.trim()) {
-                    // 기존 메시지 업데이트 (마지막 AI 메시지 수정)
-                    setMessageList((prev) => {
-                        const newMessages = [...prev]
-                        const lastAiMessageIndex = newMessages
-                            .slice()
-                            .reverse()
-                            .findIndex((message) => message.type === 'ai')
-
-                        if (lastAiMessageIndex > -1) {
-                            newMessages[
-                                newMessages.length - lastAiMessageIndex - 1
-                            ] = {
-                                ...newMessages[
-                                    newMessages.length - lastAiMessageIndex - 1
-                                ],
-                                title: retrieveResponse.title,
-                                text: retrieveResponse.content,
-                                tags: JSON.parse(JSON.stringify(selectedItems)), // 변경된 태그를 AI 메시지에 추가
-                            }
-                        }
-                        return newMessages
-                    })
-
-                    setAdditionalData(
-                        retrieveResponse.ragResult,
-                        retrieveResponse.recommendations,
-                    )
+    
+                // API 응답 형식을 create와 동일하게 처리합니다.
+                if (retrieveResponse?.success && retrieveResponse.result) {
+                    const { result } = retrieveResponse
+    
+                    // 수정된 메시지에 대한 AI 응답을 새 메시지로 추가합니다.
+                    const newAiMessage = {
+                        id: Date.now() + 1,
+                        title: result.created_title,
+                        text: result.created_content,
+                        type: 'ai',
+                        tags: result.tags || {},
+                        parentId: messageId, // 원본 메시지와 연결 (옵션)
+                    }
+                    setMessageList((prev) => [...prev, newAiMessage])
+    
+                    setAdditionalData(result)
                 } else {
-                    console.warn('AI 생성 결과를 불러올 수 없습니다.') // 경고 메시지
+                    console.warn('AI 생성 결과를 불러올 수 없습니다.')
                 }
             } catch (error) {
                 console.error('스토리 생성 중 오류 발생:', error)
@@ -225,12 +200,13 @@ const MobileMain = ({ historyData }) => {
             } finally {
                 setIsLoading(false)
                 setEditingMessageId(null)
-                setInputValue('') // 입력값 초기화
-                setCurrentTags({}) // 태그 초기화
+                setInputValue('')
+                setCurrentTags({})
             }
         },
         [],
     )
+    
 
     
 
