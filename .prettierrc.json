@@ -3,9 +3,14 @@
     "useTabs": false,
     "semi": false,
     "singleQuote": true,
-    "trailingComma": "none",
+    "trailingComma": "all",
     "arrowParens": "always",
     "bracketSpacing": true,
-    "endOfLine": "lf"
-    
+    "endOfLine": "lf",
+    "printWidth": 100,
+    "jsxSingleQuote": true,
+    "quoteProps": "consistent",
+    "proseWrap": "preserve",
+    "htmlWhitespaceSensitivity": "css",
+    "embeddedLanguageFormatting": "auto"
 }
