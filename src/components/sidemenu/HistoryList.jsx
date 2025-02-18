@@ -3,9 +3,20 @@ import { BiMessageSquareDetail } from "react-icons/bi";
 
 const HistoryList = ({ historyList, onItemClick }) => {
   const today = new Date();
+
+  // 중복된 thread_id가 있다면, 처음 나온 항목만 사용
+  const uniqueHistoryList = [];
+  const seenThreadIds = new Set();
+  historyList.forEach(chat => {
+    if (!seenThreadIds.has(chat.thread_id)) {
+      seenThreadIds.add(chat.thread_id);
+      uniqueHistoryList.push(chat);
+    }
+  });
+
   const groups = {};
 
-  historyList.forEach(chat => {
+  uniqueHistoryList.forEach(chat => {
     // 우선 thread_created_at가 있으면 사용하고, 없으면 thread_updated_at 사용
     const createdDate = new Date(
       chat.thread_created_at || chat.thread_updated_at
@@ -32,7 +43,7 @@ const HistoryList = ({ historyList, onItemClick }) => {
     groups[groupKey].push(chat);
   });
 
-  // ── 그룹 순서 정리 ──
+  // 그룹 순서 정리
   const sortedGroups = [];
   if (groups["오늘"]) sortedGroups.push({ key: "오늘", items: groups["오늘"] });
   if (groups["지난 7일"])
@@ -54,7 +65,7 @@ const HistoryList = ({ historyList, onItemClick }) => {
     sortedGroups.push({ key, items: groups[key] });
   });
 
-  return historyList.length > 0
+  return uniqueHistoryList.length > 0
     ? <div className="mt-4 ml-3 flex-grow overflow-y-auto">
         {sortedGroups.map(group =>
           <React.Fragment key={group.key}>

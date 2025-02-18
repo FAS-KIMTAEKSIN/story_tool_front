@@ -69,7 +69,8 @@ const MobileSideMenu = ({ isOpen, onClose, historyList, onSelectHistory }) => {
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
           historyList={historyList}
-        />
+          onItemClick={handleHistoryClick}
+        />      
       )}
 
       {/* 사이드 메뉴 */}
