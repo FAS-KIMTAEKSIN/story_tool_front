@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
     retrieveClassicalLiterature,
     retrieveAnalize,
+    retrieveClassicalLiteratureWithVaiv,
 } from '../../api/retrieveClassicalLiterature'
 import { IoMdSend } from 'react-icons/io'
-import { FaFilter } from 'react-icons/fa'
 import LoadingBar from '../../components/LoadingBar'
 import TagFilters from '../../components/main/TagFilters'
 import RetrieveClassicalLiterature from '../../components/main/RetrieveClassicalLiterature'
 import ResponseRecommendationDetail from '../../components/modals/ResponseRecommendationDetail'
 import ResponseRecommendationAnalized from '../../components/modals/ResponseRecommendationAnalized'
 import FillterIcon from '../../assets/filter.png'
+import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
 
 /**
  * @description 메인 화면
@@ -32,6 +33,16 @@ const MobileMain = ({ historyData }) => {
     const [analizedSimilarStory, setAnalizedSimilarStory] = useState() //분석한 유사한 고전원문
     const [isOpenSimilarStory, setIsOpenSimilarStory] = useState(false) //분석한 유사한 고전원문 팝업 제어
     const [recommandStoryArray, setRecommandStoryArray] = useState([]) // 이런 이야기를 생성해보세요
+
+    const retrievedLiteratureText = useRetrieveClassicLiteratureStore(
+        (state) => state.retrievedLiterature,
+    )
+    const retrievedLiteratureTitle = useRetrieveClassicLiteratureStore(
+        (state) => state.retrievedLiteratureTitle,
+    )
+    const setRetrievedLiteratureText = useRetrieveClassicLiteratureStore(
+        (state) => state.setRetrievedLiterature,
+    )
 
     // 초기화: localStorage 정리
     useEffect(() => {
@@ -90,9 +101,7 @@ const MobileMain = ({ historyData }) => {
             if (recommendations.length > 0) {
                 setRecommandStoryArray(recommendations)
             } else {
-                console.warn(
-                    '⚠️ recommendations가 올바르게 전달되지 않았습니다.',
-                )
+                console.warn('⚠️ recommendations가 올바르게 전달되지 않았습니다.')
             }
         },
         [setSimilarClassicalArray, setRecommandStoryArray],
@@ -102,43 +111,41 @@ const MobileMain = ({ historyData }) => {
     useEffect(() => {
         // console.log("historyData", historyData);
         if (
-          historyData &&
-          historyData.conversation_history &&
-          historyData.conversation_history.length > 0
+            historyData &&
+            historyData.conversation_history &&
+            historyData.conversation_history.length > 0
         ) {
-          // conversation_history 배열의 모든 항목을 순회하여 메시지 배열을 구성합니다.
-          const allMessages = historyData.conversation_history.flatMap((conv) => {
-            const result = conv.result;
-            const convMessages = [];
-            if (result.user_input) {
-              convMessages.push({
-                id: `${result.conversation_id}_user`,
-                text: result.user_input,
-                type: 'user',
-              });
-            }
-            if (result.created_content || result.created_title) {
-              convMessages.push({
-                id: `${result.conversation_id}_ai`,
-                title: result.created_title,
-                text: result.created_content,
-                type: 'ai',
-                tags: result.tags || {},
-              });
-            }
-            return convMessages;
-          });
-          // 새로 받은 데이터를 기존 메시지 리스트를 비우고 세팅합니다.
-          setMessageList(allMessages);
-          
-          // 추가 데이터는 마지막 대화의 결과(또는 원하는 대화의 데이터를) 사용합니다.
-          const lastResult =
-            historyData.conversation_history[historyData.conversation_history.length - 1].result;
-          setAdditionalData(lastResult);
-        }
-      }, [historyData, setAdditionalData]);
-      
+            // conversation_history 배열의 모든 항목을 순회하여 메시지 배열을 구성합니다.
+            const allMessages = historyData.conversation_history.flatMap((conv) => {
+                const result = conv.result
+                const convMessages = []
+                if (result.user_input) {
+                    convMessages.push({
+                        id: `${result.conversation_id}_user`,
+                        text: result.user_input,
+                        type: 'user',
+                    })
+                }
+                if (result.created_content || result.created_title) {
+                    convMessages.push({
+                        id: `${result.conversation_id}_ai`,
+                        title: result.created_title,
+                        text: result.created_content,
+                        type: 'ai',
+                        tags: result.tags || {},
+                    })
+                }
+                return convMessages
+            })
+            // 새로 받은 데이터를 기존 메시지 리스트를 비우고 세팅합니다.
+            setMessageList(allMessages)
 
+            // 추가 데이터는 마지막 대화의 결과(또는 원하는 대화의 데이터를) 사용합니다.
+            const lastResult =
+                historyData.conversation_history[historyData.conversation_history.length - 1].result
+            setAdditionalData(lastResult)
+        }
+    }, [historyData, setAdditionalData])
 
     // 태그 필터 팝업 visible 상태 변경
     const handleIsDetailVisible = useCallback(() => {
@@ -152,71 +159,97 @@ const MobileMain = ({ historyData }) => {
     }, [])
 
     // 마지막 사용자 메시지 수정 + AI 생성 요청
-    const updateLastUserMessage = useCallback(
-        async (messageId, text, selectedItems) => {
-            setIsLoading(true)
-            try {
-                // 수정된 사용자 메시지를 새 메시지로 추가하여 기존 메시지를 보존합니다.
-                const newUserMessage = {
-                    id: Date.now(),
-                    text,
-                    type: 'user',
+    const updateLastUserMessage = useCallback(async (messageId, text, selectedItems) => {
+        setIsLoading(true)
+        try {
+            // 수정된 사용자 메시지를 새 메시지로 추가하여 기존 메시지를 보존합니다.
+            const newUserMessage = {
+                id: Date.now(),
+                text,
+                type: 'user',
+                parentId: messageId, // 원본 메시지와 연결 (옵션)
+            }
+            setMessageList((prev) => [...prev, newUserMessage])
+
+            console.log('------ updateLastUserMessage ------', text)
+
+            // 고전문학 데이터 생성 요청 (API 호출)
+            const retrieveResponse = await retrieveClassicalLiterature({
+                inputValue: text,
+                selectedItems,
+            })
+
+            console.log('------ retrieveResponse ------', retrieveResponse)
+
+            // API 응답 형식을 create와 동일하게 처리합니다.
+            if (retrieveResponse?.success && retrieveResponse.result) {
+                const { result } = retrieveResponse
+
+                // 수정된 메시지에 대한 AI 응답을 새 메시지로 추가합니다.
+                const newAiMessage = {
+                    id: Date.now() + 1,
+                    title: result.created_title,
+                    text: result.created_content,
+                    type: 'ai',
+                    tags: result.tags || {},
                     parentId: messageId, // 원본 메시지와 연결 (옵션)
                 }
-                setMessageList((prev) => [...prev, newUserMessage])
-    
-                console.log('------ updateLastUserMessage ------', text)
-    
-                // 고전문학 데이터 생성 요청 (API 호출)
-                const retrieveResponse = await retrieveClassicalLiterature({
-                    inputValue: text,
-                    selectedItems,
-                })
-    
-                console.log('------ retrieveResponse ------', retrieveResponse)
-    
-                // API 응답 형식을 create와 동일하게 처리합니다.
-                if (retrieveResponse?.success && retrieveResponse.result) {
-                    const { result } = retrieveResponse
-    
-                    // 수정된 메시지에 대한 AI 응답을 새 메시지로 추가합니다.
-                    const newAiMessage = {
-                        id: Date.now() + 1,
-                        title: result.created_title,
-                        text: result.created_content,
-                        type: 'ai',
-                        tags: result.tags || {},
-                        parentId: messageId, // 원본 메시지와 연결 (옵션)
-                    }
-                    setMessageList((prev) => [...prev, newAiMessage])
-    
-                    setAdditionalData(result)
-                } else {
-                    console.warn('AI 생성 결과를 불러올 수 없습니다.')
-                }
-            } catch (error) {
-                console.error('스토리 생성 중 오류 발생:', error)
-                alert('스토리 생성 중 오류가 발생했습니다.')
-            } finally {
-                setIsLoading(false)
-                setEditingMessageId(null)
-                setInputValue('')
-                setCurrentTags({})
-            }
-        },
-        [],
-    )
-    
+                setMessageList((prev) => [...prev, newAiMessage])
 
-    
+                setAdditionalData(result)
+            } else {
+                console.warn('AI 생성 결과를 불러올 수 없습니다.')
+            }
+        } catch (error) {
+            console.error('스토리 생성 중 오류 발생:', error)
+            alert('스토리 생성 중 오류가 발생했습니다.')
+        } finally {
+            setIsLoading(false)
+            setEditingMessageId(null)
+            setInputValue('')
+            setCurrentTags({})
+        }
+    }, [])
+
+    // AI 메시지 추가 - store값을 가져와 실시간으로 반영하는것으로 처리.
+    useEffect(() => {
+        if (messageList.length === 0) return
+        if (retrievedLiteratureText === '') return
+
+        const lastMessage = messageList[messageList.length - 1]
+
+        if (lastMessage.type !== 'ai') {
+            setMessageList((prev) => [...prev, { id: Date.now(), text: '', type: 'ai' }])
+        } else if (lastMessage.type === 'ai') {
+            setMessageList((prev) =>
+                prev.map((message, index) =>
+                    index === prev.length - 1
+                        ? { ...message, text: retrievedLiteratureText }
+                        : message,
+                ),
+            )
+        }
+    }, [retrievedLiteratureText])
+
+    //title 수정 되면 기존의 값에 할당
+    useEffect(() => {
+        if (messageList.length === 0) return
+        const lastMessage = messageList[messageList.length - 1]
+
+        if (lastMessage.type === 'ai') {
+            setMessageList((prev) =>
+                prev.map((message, index) =>
+                    index === prev.length - 1
+                        ? { ...message, title: retrievedLiteratureTitle }
+                        : message,
+                ),
+            )
+        }
+    }, [retrievedLiteratureTitle])
 
     // 이야기 생성 요청
     const handleCreateClick = useCallback(async () => {
         if (inputValue.trim() === '') return // 입력값 없으면 무시
-
-        // console.log('📌 [handleCreateClick] 실행됨');
-        // console.log('📝 입력값:', inputValue);
-        // console.log('🏷 선택된 태그:', selectedItems);
 
         setIsLoading(true)
         try {
@@ -232,31 +265,31 @@ const MobileMain = ({ historyData }) => {
             setCurrentTags(newSelectedItems)
 
             // 고전문학 데이터 생성 요청 (API 호출)
-            const retrieveResponse = await retrieveClassicalLiterature({
+            await retrieveClassicalLiteratureWithVaiv({
                 inputValue,
                 selectedItems: newSelectedItems,
             })
-            console.log("retrieveResponse: ", retrieveResponse);
-            localStorage.setItem("thread_id", retrieveResponse.thread_id);
-            
+            // console.log('retrieveResponse: ', retrieveResponse)
+            // localStorage.setItem('thread_id', retrieveResponse.thread_id)
+
             // API 응답이 성공적으로 도착했는지 확인
-            if (retrieveResponse?.success && retrieveResponse.result) {
-                const { result } = retrieveResponse
+            // if (retrieveResponse?.success && retrieveResponse.result) {
+            //     const { result } = retrieveResponse
 
-                // AI 생성 결과를 메시지 목록에 추가
-                const newAiMessage = {
-                    id: Date.now(),
-                    title: result.created_title, // 변경된 응답 데이터에서 제목 가져오기
-                    text: result.created_content, // 변경된 응답 데이터에서 생성된 이야기 가져오기
-                    type: 'ai',
-                    tags: result.tags || {}, // 변경된 응답 데이터에서 태그 가져오기
-                }
-                setMessageList((prev) => [...prev, newAiMessage])
+            //     // AI 생성 결과를 메시지 목록에 추가
+            //     const newAiMessage = {
+            //         id: Date.now(),
+            //         title: result.created_title, // 변경된 응답 데이터에서 제목 가져오기
+            //         text: result.created_content, // 변경된 응답 데이터에서 생성된 이야기 가져오기
+            //         type: 'ai',
+            //         tags: result.tags || {}, // 변경된 응답 데이터에서 태그 가져오기
+            //     }
+            //     setMessageList((prev) => [...prev, newAiMessage])
 
-                setAdditionalData(result)
-            } else {
-                console.warn('⚠️ AI 생성 결과를 불러올 수 없습니다.')
-            }
+            //     setAdditionalData(result)
+            // } else {
+            //     console.warn('⚠️ AI 생성 결과를 불러올 수 없습니다.')
+            // }
         } catch (error) {
             console.error('🚨 [오류 발생] 스토리 생성 중 오류:', error)
             alert('스토리 생성 중 오류가 발생했습니다.')
@@ -326,13 +359,7 @@ const MobileMain = ({ historyData }) => {
             // 생성 모드: handleCreateClick 호출
             handleCreateClick()
         }
-    }, [
-        editingMessageId,
-        inputValue,
-        selectedItems,
-        updateLastUserMessage,
-        handleCreateClick,
-    ])
+    }, [editingMessageId, inputValue, selectedItems, updateLastUserMessage, handleCreateClick])
 
     // RetrieveClassicalLiterature 컴포넌트에서 수정 버튼 클릭 시 호출
     const handleEditMessage = (messageId, text) => {
@@ -386,7 +413,7 @@ const MobileMain = ({ historyData }) => {
             {isLoading && <LoadingBar />}
             {/* 내용이 없을 때 표시되는 메시지 */}
             {!inputValue.trim() && messageList.length === 0 && (
-                <div className="flex items-center justify-center flex-1 text-center text-gray-500 text-sm italic">
+                <div className='flex items-center justify-center flex-1 text-center text-gray-500 text-sm italic'>
                     <p>
                         간단한 설정으로 <br />
                         고전 이야기를 만들어 보세요
@@ -407,15 +434,15 @@ const MobileMain = ({ historyData }) => {
             />
 
             {/* 하단 입력부 */}
-            <div className="w-full max-h-56 fixed bottom-2 p-2 flex space-x-2">
-                <div className="w-full h-full flex flex-col border border-gray-300 rounded-md bg-white shadow-md p-2">
-                    <div className="w-full h-full flex items-center">
+            <div className='w-full max-h-56 fixed bottom-2 p-2 flex space-x-2'>
+                <div className='w-full h-full flex flex-col border border-gray-300 rounded-md bg-white shadow-md p-2'>
+                    <div className='w-full h-full flex items-center'>
                         {/* Textarea 영역 */}
-                        <div className="flex-1 h-full">
+                        <div className='flex-1 h-full'>
                             <textarea
                                 ref={inputValueRef}
-                                className="w-full h-full border-none focus:outline-none resize-none bg-transparent overflow-y-auto max-h-28 p-2"
-                                placeholder="예) 귀신이 소년을 괴롭혀서 소년이 울어버리는 이야기"
+                                className='w-full h-full border-none focus:outline-none resize-none bg-transparent overflow-y-auto max-h-28 p-2'
+                                placeholder='예) 귀신이 소년을 괴롭혀서 소년이 울어버리는 이야기'
                                 value={inputValue}
                                 onChange={(e) => {
                                     setInputValue(e.target.value)
@@ -425,7 +452,7 @@ const MobileMain = ({ historyData }) => {
                             />
                         </div>
                         {/* 버튼 그룹 */}
-                        <div className="h-full flex flex-col pl-2 space-y-2">
+                        <div className='h-full flex flex-col pl-2 space-y-2'>
                             {/* Send 버튼 */}
                             <button
                                 className={`flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none 
@@ -437,16 +464,12 @@ const MobileMain = ({ historyData }) => {
                                 onClick={handleSubmit}
                                 disabled={!inputValue.trim() || isLoading}
                             >
-                                {editingMessageId ? (
-                                    '수정'
-                                ) : (
-                                    <IoMdSend className="text-lg" />
-                                )}
+                                {editingMessageId ? '수정' : <IoMdSend className='text-lg' />}
                             </button>
 
                             {editingMessageId && (
                                 <button
-                                    className="flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300"
+                                    className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
                                     onClick={handleCancelEdit}
                                 >
                                     취소
@@ -455,28 +478,24 @@ const MobileMain = ({ historyData }) => {
 
                             {/* Settings 버튼 */}
                             <button
-                                className="flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300"
+                                className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
                                 onClick={handleIsDetailVisible}
-                                >
-                                <img src={FillterIcon} alt="Filter" className="w-5 h-5" />
+                            >
+                                <img src={FillterIcon} alt='Filter' className='w-5 h-5' />
                             </button>
-
-
                         </div>
                     </div>
                     {/* 선택된 태그가 나열되는 위치. 기본 1rem */}
-                    <div className="h-10 overflow-x-auto whitespace-nowrap">
+                    <div className='h-10 overflow-x-auto whitespace-nowrap'>
                         {/* 스크롤 속성 적용 및 높이 지정 */}
-                        <div className="flex gap-1 p-1">
+                        <div className='flex gap-1 p-1'>
                             {/* p-1 추가 */}
                             {Object.entries(selectedItems).map(([key, items]) =>
                                 items.map((item, index) => (
                                     <button // div 대신 button 사용 (삭제 기능 고려)
                                         key={`${key}-${item}-${index}`} // index 추가해서 key 중복 방지
-                                        className="px-2 py-1 text-xs text-gray-500 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none" // hover 효과 추가
-                                        onClick={() =>
-                                            handleDeleteTag(key, item)
-                                        } // 삭제 기능 추가
+                                        className='px-2 py-1 text-xs text-gray-500 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none' // hover 효과 추가
+                                        onClick={() => handleDeleteTag(key, item)} // 삭제 기능 추가
                                     >
                                         {item}
                                         {/*<TiDelete className="inline" /> 삭제 아이콘 숨김: 영역이 너무 길게 나타남. */}
@@ -502,9 +521,7 @@ const MobileMain = ({ historyData }) => {
             {selectedSimilarStory && (
                 <ResponseRecommendationDetail
                     story={selectedSimilarStory}
-                    closeResponseRecommendationDetail={
-                        updateSelectedSimilarStory
-                    }
+                    closeResponseRecommendationDetail={updateSelectedSimilarStory}
                     handleAnalyze={handleAnalyze}
                 />
             )}
