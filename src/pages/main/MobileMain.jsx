@@ -23,7 +23,7 @@ const MobileMain = ({ historyData }) => {
     const [selectedItems, setSelectedItems] = useState({})
     const [inputValue, setInputValue] = useState('')
     const [isDetailVisible, setIsDetailVisible] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
+    // const [isLoading, setIsLoading] = useState(false)
     const [messageList, setMessageList] = useState([]) // user, ai 의 메시지를 담는 배열
     const [editingMessageId, setEditingMessageId] = useState(null) // 수정 중인 메시지 ID
     const [currentTags, setCurrentTags] = useState({}) // 현재 메시지에 사용된 태그
@@ -40,9 +40,7 @@ const MobileMain = ({ historyData }) => {
     const retrievedLiteratureTitle = useRetrieveClassicLiteratureStore(
         (state) => state.retrievedLiteratureTitle,
     )
-    const setRetrievedLiteratureText = useRetrieveClassicLiteratureStore(
-        (state) => state.setRetrievedLiterature,
-    )
+    const isLoading = useRetrieveClassicLiteratureStore((state) => state.isGenerating)
 
     // 초기화: localStorage 정리
     useEffect(() => {
@@ -160,51 +158,41 @@ const MobileMain = ({ historyData }) => {
 
     // 마지막 사용자 메시지 수정 + AI 생성 요청
     const updateLastUserMessage = useCallback(async (messageId, text, selectedItems) => {
-        setIsLoading(true)
         try {
-            // 수정된 사용자 메시지를 새 메시지로 추가하여 기존 메시지를 보존합니다.
-            const newUserMessage = {
-                id: Date.now(),
-                text,
-                type: 'user',
-                parentId: messageId, // 원본 메시지와 연결 (옵션)
-            }
-            setMessageList((prev) => [...prev, newUserMessage])
+            setMessageList((prev) => {
+                // 마지막 AI 메시지 삭제
+                const newMessageList = prev.filter((message, index) => {
+                    return !(message.type === 'ai' && index === prev.length - 1)
+                })
 
-            console.log('------ updateLastUserMessage ------', text)
+                // 사용자 메시지 업데이트
+                return newMessageList.map((message) => {
+                    if (message.id === messageId && message.type === 'user') {
+                        return { ...message, text: text }
+                    }
+                    return message
+                })
+            })
+
+            // 새로운 AI 메시지 추가 (필요한 경우)
+            const newAiMessage = {
+                id: Date.now() + 1,
+                title: '',
+                text: '',
+                type: 'ai',
+                tags: {},
+                parentId: messageId,
+            }
+            setMessageList((prev) => [...prev, newAiMessage])
 
             // 고전문학 데이터 생성 요청 (API 호출)
-            const retrieveResponse = await retrieveClassicalLiterature({
+            await retrieveClassicalLiteratureWithVaiv({
                 inputValue: text,
                 selectedItems,
             })
-
-            console.log('------ retrieveResponse ------', retrieveResponse)
-
-            // API 응답 형식을 create와 동일하게 처리합니다.
-            if (retrieveResponse?.success && retrieveResponse.result) {
-                const { result } = retrieveResponse
-
-                // 수정된 메시지에 대한 AI 응답을 새 메시지로 추가합니다.
-                const newAiMessage = {
-                    id: Date.now() + 1,
-                    title: result.created_title,
-                    text: result.created_content,
-                    type: 'ai',
-                    tags: result.tags || {},
-                    parentId: messageId, // 원본 메시지와 연결 (옵션)
-                }
-                setMessageList((prev) => [...prev, newAiMessage])
-
-                setAdditionalData(result)
-            } else {
-                console.warn('AI 생성 결과를 불러올 수 없습니다.')
-            }
         } catch (error) {
             console.error('스토리 생성 중 오류 발생:', error)
-            alert('스토리 생성 중 오류가 발생했습니다.')
         } finally {
-            setIsLoading(false)
             setEditingMessageId(null)
             setInputValue('')
             setCurrentTags({})
@@ -213,8 +201,7 @@ const MobileMain = ({ historyData }) => {
 
     // AI 메시지 추가 - store값을 가져와 실시간으로 반영하는것으로 처리.
     useEffect(() => {
-        if (messageList.length === 0) return
-        if (retrievedLiteratureText === '') return
+        if (messageList.length === 0 || retrievedLiteratureText === '') return
 
         const lastMessage = messageList[messageList.length - 1]
 
@@ -233,10 +220,10 @@ const MobileMain = ({ historyData }) => {
 
     //title 수정 되면 기존의 값에 할당
     useEffect(() => {
-        if (messageList.length === 0) return
+        if (messageList.length === 0 || retrievedLiteratureTitle === '') return
         const lastMessage = messageList[messageList.length - 1]
-
         if (lastMessage.type === 'ai') {
+            console.log('retrievedLiteratureTitle updated', retrievedLiteratureTitle)
             setMessageList((prev) =>
                 prev.map((message, index) =>
                     index === prev.length - 1
@@ -251,7 +238,6 @@ const MobileMain = ({ historyData }) => {
     const handleCreateClick = useCallback(async () => {
         if (inputValue.trim() === '') return // 입력값 없으면 무시
 
-        setIsLoading(true)
         try {
             // 메시지 목록에 사용자 메시지 추가
             const newUserMessage = {
@@ -269,32 +255,10 @@ const MobileMain = ({ historyData }) => {
                 inputValue,
                 selectedItems: newSelectedItems,
             })
-            // console.log('retrieveResponse: ', retrieveResponse)
-            // localStorage.setItem('thread_id', retrieveResponse.thread_id)
-
-            // API 응답이 성공적으로 도착했는지 확인
-            // if (retrieveResponse?.success && retrieveResponse.result) {
-            //     const { result } = retrieveResponse
-
-            //     // AI 생성 결과를 메시지 목록에 추가
-            //     const newAiMessage = {
-            //         id: Date.now(),
-            //         title: result.created_title, // 변경된 응답 데이터에서 제목 가져오기
-            //         text: result.created_content, // 변경된 응답 데이터에서 생성된 이야기 가져오기
-            //         type: 'ai',
-            //         tags: result.tags || {}, // 변경된 응답 데이터에서 태그 가져오기
-            //     }
-            //     setMessageList((prev) => [...prev, newAiMessage])
-
-            //     setAdditionalData(result)
-            // } else {
-            //     console.warn('⚠️ AI 생성 결과를 불러올 수 없습니다.')
-            // }
         } catch (error) {
             console.error('🚨 [오류 발생] 스토리 생성 중 오류:', error)
             alert('스토리 생성 중 오류가 발생했습니다.')
         } finally {
-            setIsLoading(false)
             setInputValue('') // 입력값 초기화
             setCurrentTags({}) // 태그 초기화
         }
@@ -306,8 +270,6 @@ const MobileMain = ({ historyData }) => {
     const requestNewStory = useCallback(
         async (story, tags = undefined) => {
             try {
-                setIsLoading(true)
-
                 const newUserMessage = {
                     id: Date.now(),
                     text: story,
@@ -316,33 +278,14 @@ const MobileMain = ({ historyData }) => {
                 setMessageList((prev) => [...prev, newUserMessage])
 
                 // 고전문학 데이터 생성 요청 (API 호출)
-                const retrieveResponse = await retrieveClassicalLiterature({
+                await retrieveClassicalLiteratureWithVaiv({
                     inputValue: story,
                     selectedItems: tags,
                 })
-
-                console.log('------ retrieveResponse ------', retrieveResponse)
-
-                // API 응답이 성공적으로 도착했을 경우
-                if (retrieveResponse?.success && retrieveResponse.result) {
-                    const { result } = retrieveResponse
-
-                    // AI 생성 결과를 메시지 목록에 추가
-                    const newAiMessage = {
-                        id: Date.now(),
-                        title: result.created_title || '제목 없음',
-                        text: result.created_content || '내용 없음',
-                        type: 'ai',
-                        tags: result.tags || {},
-                    }
-                    setMessageList((prev) => [...prev, newAiMessage])
-
-                    setAdditionalData(result)
-                }
             } catch (e) {
                 console.error(e)
             } finally {
-                setIsLoading(false)
+                // setIsLoading(false)
             }
         },
         [setAdditionalData, setMessageList],
@@ -384,7 +327,7 @@ const MobileMain = ({ historyData }) => {
 
     const handleAnalyze = async (story) => {
         console.log(story)
-        setIsLoading(true)
+        // setIsLoading(true)
         const analizedResult = await retrieveAnalize(story)
 
         setAnalizedSimilarStory({ ...analizedResult, title: story.title })
@@ -392,7 +335,7 @@ const MobileMain = ({ historyData }) => {
         setSelectedSimilarStory(null)
         updateIsOpenSimilarStory() //open close 제어
 
-        setIsLoading(false)
+        // setIsLoading(false)
     }
 
     const updateIsOpenSimilarStory = () => {

@@ -95,6 +95,7 @@ export const retrieveAnalize = async (similarText) => {
 export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selectedItems }) => {
     //기존 로직을 토대로 신규 Viav 데이터 Streaming 로직 추가
     console.log('retrieveClassicalLiterature:\n', inputValue, '\n', selectedItems)
+    useRetrieveClassicLiteratureStore.getState().updateIsGenerating(true) //isLoading
 
     if (
         !typeof inputValue === 'string' ||
@@ -123,8 +124,6 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
             headers: Config.headers,
             body: JSON.stringify(requestBody),
         })
-        console.log(response)
-
         useRetrieveClassicLiteratureStore.getState().setRetrievedLiterature('') //초기화
         useRetrieveClassicLiteratureStore.getState().setRetrievedLiteratureTitle('') //초기화
 
@@ -142,7 +141,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                         removeFirstAndLastQuotes(decodeUnicodeString(beforeData)),
                     )
                     const cleanData = parseNestedJSON(afterData)
-                    console.log(`cleanData \n`, cleanData)
+                    console.log(JSON.stringify(cleanData))
                     if (
                         cleanData?.msg === 'process_generating' &&
                         cleanData?.output?.data[0][0] &&
@@ -193,11 +192,13 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
         }
     } catch (error) {
         console.error('🚨 [API 요청 중 오류 발생]: ', error.message)
+    } finally {
+        useRetrieveClassicLiteratureStore.getState().updateIsGenerating(false) //isLoading 종료
     }
 }
 
 // 백슬래시를 제거하되 줄바꿈은 유지
-const remmoveBackslash = (str) => str.replace(/\\(?![n\r])/g, '')
+const remmoveBackslash = (str) => str.replace(/\\(?![n\r])/g, '').replace(/""/g, '"')
 
 // 줄바꿈 관련 처리 제거
 const removeFirstAndLastQuotes = (str) =>

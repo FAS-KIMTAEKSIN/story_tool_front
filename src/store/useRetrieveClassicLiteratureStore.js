@@ -3,6 +3,7 @@ import { create } from 'zustand'
 const useRetrieveClassicLiteratureStore = create((set) => ({
     retrievedLiterature: '', // 현재 생성되고 있는 문학
     retrievedLiteratureTitle: '', // 현재 생성되고 있는 문학의 제목
+    isGenerating: false, //loadingbar 처리
 
     setRetrievedLiterature: (newLiterature) =>
         set(() => ({
@@ -18,6 +19,11 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
     appendLiterature: (additionalContent) =>
         set((state) => ({
             retrievedLiterature: state.retrievedLiterature + additionalContent,
+        })),
+
+    updateIsGenerating: (isGenerating) =>
+        set(() => ({
+            isGenerating,
         })),
 }))
 
