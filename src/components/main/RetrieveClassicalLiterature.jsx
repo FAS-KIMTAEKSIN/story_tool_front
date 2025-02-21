@@ -3,6 +3,7 @@ import { LiaEdit } from 'react-icons/lia'
 import ResponseRecommendations from './ResponseRecommendations'
 import ChatOptions from './../chatOptions/ChatOptions'
 import ResponseSimilarStory from '../response/ResponseSimilarStory'
+import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
 
 const RetrieveClassicalLiterature = ({
     messageList,
@@ -13,11 +14,9 @@ const RetrieveClassicalLiterature = ({
     updateSelectedSimilarStory,
     isLoading,
 }) => {
+    const isGenerating = useRetrieveClassicLiteratureStore.getState().isGenerating //isLoading
     const messageListRef = useRef(null)
-    const [displayedTexts, setDisplayedTexts] = useState({})
-    const [typingIndex, setTypingIndex] = useState({})
     const [lastAiMessageId, setLastAiMessageId] = useState(null)
-    const [typingComplete, setTypingComplete] = useState({})
 
     const isLastMessage = useCallback(
         (type, index) => {
@@ -32,20 +31,12 @@ const RetrieveClassicalLiterature = ({
         [messageList],
     )
 
-    // AI 메시지 타이핑 효과 (새 응답에 대한 애니메이션)
+    // 마지막 AI 메시지 ID
     useEffect(() => {
         setLastAiMessageId(null)
         messageList.forEach((message) => {
             if (message.type === 'ai') {
                 setLastAiMessageId(message.id)
-                if (displayedTexts[message.id] === undefined) {
-                    setDisplayedTexts((prev) => ({ ...prev, [message.id]: '' }))
-                    setTypingIndex((prev) => ({ ...prev, [message.id]: 0 }))
-                    setTypingComplete((prev) => ({
-                        ...prev,
-                        [message.id]: false,
-                    }))
-                }
             }
         })
     }, [messageList])
@@ -55,7 +46,7 @@ const RetrieveClassicalLiterature = ({
         if (messageListRef.current) {
             messageListRef.current.scrollTop = messageListRef.current.scrollHeight
         }
-    }, [messageList])
+    }, [messageList, recommandStoryArray])
 
     const renderTags = useCallback((tags) => {
         if (!tags || Object.keys(tags).length === 0) return null
@@ -117,21 +108,19 @@ const RetrieveClassicalLiterature = ({
                                             <strong className='text-normal'>{message.title}</strong>
                                         </h3>
                                         <p className='text-sm mb-2 whitespace-pre-line'>
-                                            {displayedTexts[message.id] || message.text}
+                                            {message.text}
                                         </p>
                                         {renderTags(message.tags)}
-                                        {typingComplete[message.id] && (
-                                            <ChatOptions
-                                                message={message}
-                                                isLastAiMessage={isLastMessage('ai', index)}
-                                            />
-                                        )}
+                                        <ChatOptions
+                                            message={message}
+                                            isLastAiMessage={isLastMessage('ai', index)}
+                                        />
                                     </div>
                                 </>
                             )}
                         </div>
 
-                        {typingComplete[message.id] && (
+                        {!isGenerating && message.type === 'ai' && (
                             <div className='transition-opacity duration-300 ease-in-out mt-4'>
                                 <ResponseSimilarStory
                                     similarClassicalArray={similarClassicalArray ?? []}

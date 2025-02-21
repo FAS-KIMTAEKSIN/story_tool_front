@@ -92,6 +92,12 @@ export const retrieveAnalize = async (similarText) => {
     }
 }
 
+/**
+ * @description 고전문학 내용을 생성하는 ai api 호출
+ * @param {String} inputValue
+ * @param {Array} selectedItems
+ * @returns 없음 - store 사용
+ */
 export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selectedItems }) => {
     //기존 로직을 토대로 신규 Viav 데이터 Streaming 로직 추가
     console.log('retrieveClassicalLiterature:\n', inputValue, '\n', selectedItems)
@@ -103,9 +109,9 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
     )
         return
 
+    let threadId = localStorage.getItem('thread_id') ?? null // 로컬스토리지에서 값 가져오기
+    let conversationId = '' // 대화 ID
     try {
-        let threadId = localStorage.getItem('thread_id') ?? null // 로컬스토리지에서 값 가져오기
-
         if (threadId) {
             threadId = threadId.trim().replace(/"/g, '') // 앞뒤 공백 및 쌍따옴표 제거
         }
@@ -140,6 +146,45 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     const afterData = remmoveBackslash(
                         removeFirstAndLastQuotes(decodeUnicodeString(beforeData)),
                     )
+                    //thread_id, conversation_id 추출
+                    if (afterData.indexOf('thread_id') > -1) {
+                        //title 추출
+                        const createdTitle = afterData.indexOf('"created_title":')
+                        const createdTitlePart = afterData.slice(createdTitle)
+                        const createdTitleMatch = createdTitlePart.match(
+                            /"created_title":\s*"(.+?)"/,
+                        )
+                        const createdTitleValue = createdTitleMatch[1]
+
+                        useRetrieveClassicLiteratureStore
+                            .getState()
+                            .setRetrievedLiteratureTitle(createdTitleValue ?? '')
+
+                        console.log(
+                            useRetrieveClassicLiteratureStore.getState().retrievedLiteratureTitle,
+                        )
+
+                        // thread_id를 기준으로 문자열 자르기
+                        const threadIdIndex = afterData.indexOf('"thread_id":')
+                        const threadIdPart = afterData.slice(threadIdIndex)
+
+                        // thread_id와 conversation_id 추출
+                        const threadIdMatch = threadIdPart.match(/"thread_id":\s*(\d+)/)
+                        const conversationIdMatch = threadIdPart.match(/"conversation_id":\s*(\d+)/)
+
+                        threadId = parseNestedJSON(threadIdMatch[0])?.split(':')[1].trim()
+                        conversationId = parseNestedJSON(conversationIdMatch[0])
+                            ?.split(':')[1]
+                            .trim()
+
+                        return await retrieveSimilarRecommendation({
+                            inputValue,
+                            selectedItems,
+                            threadId,
+                            conversationId,
+                        })
+                    }
+
                     const cleanData = parseNestedJSON(afterData)
                     console.log(JSON.stringify(cleanData))
                     if (
@@ -161,27 +206,6 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     } else if (cleanData?.result || cleanData?.thread_id) {
                         console.log('최후 데이터')
                         console.log(cleanData.result)
-                        useRetrieveClassicLiteratureStore
-                            .getState()
-                            .setRetrievedLiteratureTitle(cleanData.result?.created_title ?? '')
-
-                        console.log(
-                            useRetrieveClassicLiteratureStore.getState().retrievedLiteratureTitle,
-                        )
-                    }
-
-                    //thread_id 값 처리, 유사한 글, 추천 글 처리
-                    if (cleanData?.result || cleanData?.thread_id) {
-                        console.log('-------------- 끝난데이터 --------------')
-
-                        const newSimilarText = {
-                            similar_1: cleanData.result.similar_1,
-                            similar_2: cleanData.result.similar_2,
-                            similar_3: cleanData.result.similar_3,
-                        }
-
-                        console.log(newSimilarText)
-                        break
                     }
                 } catch (error) {
                     console.error('Error:', error)
@@ -193,7 +217,77 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
     } catch (error) {
         console.error('🚨 [API 요청 중 오류 발생]: ', error.message)
     } finally {
+        console.log('🅰 finally --- retrieveClassicalLiteratureWithVaiv')
         useRetrieveClassicLiteratureStore.getState().updateIsGenerating(false) //isLoading 종료
+    }
+}
+
+/**
+ * @description 유사한 글, 추천글 조회
+ * @param {String} inputValue
+ * @param {Array} selectedItems
+ * @param {String} threadId
+ * @param {String} conversationId
+ * @returns {Object} newSimilarText, newRecommendation
+ */
+export const retrieveSimilarRecommendation = async ({
+    inputValue = '',
+    selectedItems = {},
+    threadId,
+    conversationId,
+}) => {
+    const requestBody = {
+        user_input: inputValue,
+        tags: selectedItems,
+        thread_id: threadId,
+        conversation_id: conversationId,
+        user_id: 1,
+    }
+
+    console.log(JSON.stringify(requestBody))
+
+    // API 요청
+    const response = await fetch(`${Config.baseURL}/api/search`, {
+        method: 'POST',
+        headers: Config.headers,
+        body: JSON.stringify(requestBody),
+    })
+
+    if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`❌ [API Error (${response.status})]:`, errorText)
+        throw new Error(`API Error (${response.status}): ${errorText}`)
+    }
+
+    //유사한글, 추천글 값 처리
+    const jsonResponse = await response.json()
+    const parsedResponse = parseNestedJSON(jsonResponse)
+    console.log('✅ [API 응답 데이터]:', parsedResponse)
+
+    //thread_id 값 처리, 유사한 글, 추천 글 처리
+    if (parsedResponse?.result) {
+        console.log('-------------- 끝난데이터 --------------')
+
+        //유사한글(Object)
+        const newSimilarText = {
+            similar_1: parsedResponse.result.similar_1,
+            similar_2: parsedResponse.result.similar_2,
+            similar_3: parsedResponse.result.similar_3,
+        }
+
+        //추천글(String)
+        const newRecommendation = {
+            recommended_1: parsedResponse.result.recommended_1,
+            recommended_2: parsedResponse.result.recommended_2,
+            recommended_3: parsedResponse.result.recommended_3,
+        }
+
+        console.log(newSimilarText)
+        console.log(newRecommendation)
+
+        return { newSimilarText, newRecommendation }
+    } else {
+        throw new Error('유사한글, 추천글 조회 에러: result 값이 없음.')
     }
 }
 
