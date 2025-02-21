@@ -68,7 +68,7 @@ const MobileMain = ({ historyData }) => {
 
             if (result) {
                 const newRagResult = ['similar_1', 'similar_2', 'similar_3']
-                    .map((key) => result[key])
+                    .map((key) => result?.newSimilarText[key])
                     .filter(Boolean) // null 또는 undefined 데이터 제거
                     .map((item) => {
                         const metadata = item.metadata || {}
@@ -83,7 +83,7 @@ const MobileMain = ({ historyData }) => {
                         }
                     })
 
-                // console.log('📌 [변환된 newRagResult]:', newRagResult)
+                console.log('📌 [변환된 newRagResult]:', newRagResult)
                 setSimilarClassicalArray(newRagResult)
             } else {
                 console.warn('⚠️ result가 올바르게 전달되지 않았습니다.')
@@ -91,9 +91,9 @@ const MobileMain = ({ historyData }) => {
 
             // "이런 이야기를 생성해보세요" 섹션 업데이트
             const recommendations = [
-                result?.recommended_1,
-                result?.recommended_2,
-                result?.recommended_3,
+                result?.newRecommendation?.recommended_1,
+                result?.newRecommendation?.recommended_2,
+                result?.newRecommendation?.recommended_3,
             ].filter(Boolean)
 
             if (recommendations.length > 0) {
@@ -186,10 +186,13 @@ const MobileMain = ({ historyData }) => {
             setMessageList((prev) => [...prev, newAiMessage])
 
             // 고전문학 데이터 생성 요청 (API 호출)
-            await retrieveClassicalLiteratureWithVaiv({
+            const result = await retrieveClassicalLiteratureWithVaiv({
                 inputValue: text,
                 selectedItems,
             })
+
+            // 추가 데이터 세팅
+            setAdditionalData(result)
         } catch (error) {
             console.error('스토리 생성 중 오류 발생:', error)
         } finally {
@@ -235,40 +238,54 @@ const MobileMain = ({ historyData }) => {
     }, [retrievedLiteratureTitle])
 
     // 이야기 생성 요청
-    const handleCreateClick = useCallback(async () => {
-        if (inputValue.trim() === '') return // 입력값 없으면 무시
-
-        try {
-            // 메시지 목록에 사용자 메시지 추가
-            const newUserMessage = {
-                id: Date.now(),
-                text: inputValue,
-                type: 'user',
+    const handleCreateClick = useCallback(
+        async (text = null, tags = undefined) => {
+            console.log(text)
+            //사용자가 입력한/수정한 메시지 추가
+            const setNewUserMessage = (text) => {
+                const newUserMessage = {
+                    id: Date.now(),
+                    text,
+                    type: 'user',
+                }
+                setMessageList((prev) => [...prev, newUserMessage])
             }
-            setMessageList((prev) => [...prev, newUserMessage])
+            //이야기를 작성하고 신규 생성할 때
+            if (text === null) {
+                if (inputValue.trim() === '') return // 입력값 없으면 무시
+                text = inputValue.trim()
+            }
 
-            const newSelectedItems = JSON.parse(JSON.stringify(selectedItems))
-            setCurrentTags(newSelectedItems)
+            try {
+                setNewUserMessage(text)
+                const newSelectedItems = tags ? tags : JSON.parse(JSON.stringify(selectedItems))
+                setCurrentTags(newSelectedItems)
 
-            // 고전문학 데이터 생성 요청 (API 호출)
-            await retrieveClassicalLiteratureWithVaiv({
-                inputValue,
-                selectedItems: newSelectedItems,
-            })
-        } catch (error) {
-            console.error('🚨 [오류 발생] 스토리 생성 중 오류:', error)
-            alert('스토리 생성 중 오류가 발생했습니다.')
-        } finally {
-            setInputValue('') // 입력값 초기화
-            setCurrentTags({}) // 태그 초기화
-        }
-    }, [inputValue, selectedItems, setCurrentTags]) // 의존성 배열 명시
+                // 고전문학 데이터 생성 요청 (API 호출)
+                const result = await retrieveClassicalLiteratureWithVaiv({
+                    inputValue,
+                    selectedItems: newSelectedItems,
+                })
+
+                // 추가 데이터 세팅
+                setAdditionalData(result)
+            } catch (error) {
+                console.error('🚨 [오류 발생] 스토리 생성 중 오류:', error)
+                alert('스토리 생성 중 오류가 발생했습니다.')
+            } finally {
+                setInputValue('') // 입력값 초기화
+                setCurrentTags({}) // 태그 초기화
+            }
+        },
+        [inputValue, selectedItems, setCurrentTags],
+    ) // 의존성 배열 명시
 
     /**
      * @description 이야기 생성 요청 함수
      */
     const requestNewStory = useCallback(
         async (story, tags = undefined) => {
+            console.log(story)
             try {
                 const newUserMessage = {
                     id: Date.now(),
@@ -278,14 +295,14 @@ const MobileMain = ({ historyData }) => {
                 setMessageList((prev) => [...prev, newUserMessage])
 
                 // 고전문학 데이터 생성 요청 (API 호출)
-                await retrieveClassicalLiteratureWithVaiv({
+                const result = await retrieveClassicalLiteratureWithVaiv({
                     inputValue: story,
                     selectedItems: tags,
                 })
+                // 추가 데이터 세팅
+                setAdditionalData(result)
             } catch (e) {
                 console.error(e)
-            } finally {
-                // setIsLoading(false)
             }
         },
         [setAdditionalData, setMessageList],
