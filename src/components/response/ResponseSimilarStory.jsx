@@ -9,7 +9,7 @@ import { CiSearch } from 'react-icons/ci'
 const ResponseSimilarStory = ({ similarClassicalArray, updateSelectedSimilarStory }) => {
     return (
         <>
-            {similarClassicalArray?.type === 'ai' && (
+            {!similarClassicalArray?.noResult && (
                 <div className='flex flex-col gap-2 text-gray-800 rounded-lg py-2 break-words border-b-gray-200 w-full'>
                     {similarClassicalArray && (
                         <div className='w-full'>
