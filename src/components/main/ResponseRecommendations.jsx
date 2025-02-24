@@ -17,10 +17,12 @@ const ResponseRecommendations = ({ recommandStoryArray, requestNewRecommandStory
         <div className={`flex-col items-start rounded-lg py-2 break-words w-full`}>
             {/* 2. 이런 이야기를 생성해보세요 */}
             <div className='mt-2'>
-                <h3 className='mb-1 flex items-center'>
-                    <span className='mr-2'></span>
-                    <strong className='text-normal'>💡 이런 이야기를 생성해보세요</strong>
-                </h3>
+                {recommandStoryArray.length > 0 && (
+                    <h3 className='mb-1 flex items-center'>
+                        <span className='mr-2'></span>
+                        <strong className='text-normal'>💡 이런 이야기를 생성해보세요</strong>
+                    </h3>
+                )}
                 <div className='flex flex-col w-full py-2'>
                     {recommandStoryArray.map((story, index) => (
                         <div className='flex' key={index}>
