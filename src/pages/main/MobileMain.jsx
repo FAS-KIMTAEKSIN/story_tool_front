@@ -68,11 +68,17 @@ const MobileMain = ({ historyData }) => {
             console.log('📌 [raw result]:', result)
             try {
                 if (result) {
+                    let noResultCount = 0
                     const newRagResult = ['similar_1', 'similar_2', 'similar_3']
                         .map((key) => result.newSimilarText[key])
                         .filter(Boolean) // null 또는 undefined 데이터 제거
                         .map((item) => {
                             const metadata = item.metadata || {}
+
+                            if (!metadata.단락데이터 && !metadata.작품명) {
+                                noResultCount++
+                            }
+
                             return {
                                 paragraph: metadata.단락데이터 || '내용 없음',
                                 title: metadata.작품명 || '제목 없음',
@@ -88,6 +94,7 @@ const MobileMain = ({ historyData }) => {
                     const newObj = {
                         type: 'ai',
                         list: [...newRagResult],
+                        noResult: noResultCount === 3 ? true : false, //결과 존재여부
                     }
 
                     //similar array update
@@ -102,6 +109,8 @@ const MobileMain = ({ historyData }) => {
             }
 
             try {
+                setRecommandStoryArray([]) //초기화
+
                 // "이런 이야기를 생성해보세요" 섹션 업데이트
                 const recommendations = [
                     result?.newRecommendation?.recommended_1,
