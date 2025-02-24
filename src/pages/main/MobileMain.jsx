@@ -187,7 +187,6 @@ const MobileMain = ({ historyData }) => {
                 Array.isArray(historyData.conversation_history) &&
                 historyData.conversation_history.length > 0
             ) {
-                debugger
                 setSimilarClassicalArray([])
                 historyData.conversation_history.map((conv, index) => {
                     //마지막 요소가 아닌 경우만 ////
