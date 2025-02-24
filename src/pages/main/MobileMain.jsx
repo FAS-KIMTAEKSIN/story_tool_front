@@ -90,7 +90,10 @@ const MobileMain = ({ historyData }) => {
                         list: [...newRagResult],
                     }
 
-                    setSimilarClassicalArray((prev) => [...prev, newObj])
+                    //similar array update
+                    setSimilarClassicalArray((prev) =>
+                        Array.isArray(prev) ? [...prev, newObj] : [newObj],
+                    )
                 } else {
                     console.warn('⚠️ result가 올바르게 전달되지 않았습니다.')
                 }
@@ -115,7 +118,7 @@ const MobileMain = ({ historyData }) => {
                 console.error(`🚨 setAdditionalData/ 이런 이야기를 생성해보세요 : ${error}`)
             }
         },
-        [setSimilarClassicalArray, setRecommandStoryArray, similarClassicalArray],
+        [setSimilarClassicalArray, setRecommandStoryArray],
     )
 
     // historyData.result가 존재하면 기존 메시지 리스트에 추가
@@ -172,6 +175,7 @@ const MobileMain = ({ historyData }) => {
     // 마지막 사용자 메시지 수정 + AI 생성 요청
     const updateLastUserMessage = useCallback(async (messageId, text, selectedItems) => {
         try {
+            //전체 메시지 수정
             setMessageList((prev) => {
                 // 마지막 AI 메시지 삭제
                 const newMessageList = prev.filter((message, index) => {
@@ -198,18 +202,8 @@ const MobileMain = ({ historyData }) => {
             }
             setMessageList((prev) => [...prev, newAiMessage])
 
-            let newSimilarArray = []
-            if (similarClassicalArray.length > 0) {
-                newSimilarArray = [...similarClassicalArray]
-            }
-
-            // 사용자 메시지 추가
-            newSimilarArray = newSimilarArray.push({
-                type: 'user',
-                list: [],
-            })
-            console.log(`user message ADDED. \n: ${JSON.stringify(newSimilarArray)}`)
-            setSimilarClassicalArray([...newSimilarArray])
+            //유사문학 - 마지막 ai 메시지 제거 (사용자메시지는 제거할 필요 없음)
+            setSimilarClassicalArray((prev) => [...prev].slice(0, prev.length - 1))
 
             // 고전문학 데이터 생성 요청 (API 호출)
             const result = await retrieveClassicalLiteratureWithVaiv({
