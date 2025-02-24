@@ -129,6 +129,7 @@ const MobileMain = ({ historyData }) => {
             historyData.conversation_history &&
             historyData.conversation_history.length > 0
         ) {
+            console.log('history 선택 / MobileMain.jsx // \n', historyData.conversation_history)
             // conversation_history 배열의 모든 항목을 순회하여 메시지 배열을 구성합니다.
             const allMessages = historyData.conversation_history.flatMap((conv) => {
                 const result = conv.result
@@ -157,6 +158,52 @@ const MobileMain = ({ historyData }) => {
             // 추가 데이터는 마지막 대화의 결과(또는 원하는 대화의 데이터를) 사용합니다.
             const lastResult =
                 historyData.conversation_history[historyData.conversation_history.length - 1].result
+
+            //유사고전원문 컬럼 설정
+            lastResult.newSimilarText = {
+                similar_1: lastResult.similar_1 ?? {},
+                similar_2: lastResult.similar_2 ?? {},
+                similar_3: lastResult.similar_3 ?? {},
+            }
+
+            //추천 이야기 컬럼 설정
+            lastResult.newRecommendation = {
+                recommended_1: lastResult.recommended_1 ?? '',
+                recommended_2: lastResult.recommended_2 ?? '',
+                recommended_3: lastResult.recommended_3 ?? '',
+            }
+
+            //  유사원문 - 사용자 메시지 추가 / 마지막 항목에만 추가
+            const _blankUserObj = {
+                type: 'user',
+                list: [],
+            }
+
+            const _blankAiObj = {
+                type: 'ai',
+                list: [],
+            }
+            if (
+                Array.isArray(historyData.conversation_history) &&
+                historyData.conversation_history.length > 0
+            ) {
+                debugger
+                setSimilarClassicalArray([])
+                historyData.conversation_history.map((conv, index) => {
+                    //마지막 요소가 아닌 경우만 ////
+                    // //(ai 항목은 추가하지않음) - setAdditionalData 에서 추가예정
+                    if (index !== historyData.conversation_history.length - 1) {
+                        //마지막 배열이 아닌 경우에만 ai 값까지 추가
+                        setSimilarClassicalArray((prev) => [...prev, _blankUserObj])
+                        setSimilarClassicalArray((prev) => [...prev, _blankAiObj])
+                    } else {
+                        //마지막의 경우 user 값만 추가
+                        setSimilarClassicalArray((prev) => [...prev, _blankUserObj])
+                    }
+                    return conv
+                })
+            }
+
             setAdditionalData(lastResult)
         }
     }, [historyData, setAdditionalData])
