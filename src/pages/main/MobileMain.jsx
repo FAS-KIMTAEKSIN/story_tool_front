@@ -34,6 +34,7 @@ const MobileMain = ({ historyData }) => {
     const [isOpenSimilarStory, setIsOpenSimilarStory] = useState(false) //분석한 유사한 고전원문 팝업 제어
     const [recommandStoryArray, setRecommandStoryArray] = useState([]) // 이런 이야기를 생성해보세요
 
+    //store
     const retrievedLiteratureText = useRetrieveClassicLiteratureStore(
         (state) => state.retrievedLiterature,
     )
@@ -65,41 +66,56 @@ const MobileMain = ({ historyData }) => {
     const setAdditionalData = useCallback(
         (result) => {
             console.log('📌 [raw result]:', result)
+            try {
+                if (result) {
+                    const newRagResult = ['similar_1', 'similar_2', 'similar_3']
+                        .map((key) => result.newSimilarText[key])
+                        .filter(Boolean) // null 또는 undefined 데이터 제거
+                        .map((item) => {
+                            const metadata = item.metadata || {}
+                            return {
+                                paragraph: metadata.단락데이터 || '내용 없음',
+                                title: metadata.작품명 || '제목 없음',
+                                country: metadata.국가 || '국가 없음',
+                                paragraphNum: metadata.단락일련번호 || '단락번호 없음',
+                                summary: metadata.주제문 || '요약 없음',
+                                metadata, // 전체 metadata 저장
+                                score: item.score || 0, // 유사도 점수 추가
+                            }
+                        })
 
-            if (result) {
-                const newRagResult = ['similar_1', 'similar_2', 'similar_3']
-                    .map((key) => result?.newSimilarText[key])
-                    .filter(Boolean) // null 또는 undefined 데이터 제거
-                    .map((item) => {
-                        const metadata = item.metadata || {}
-                        return {
-                            paragraph: metadata.단락데이터 || '내용 없음',
-                            title: metadata.작품명 || '제목 없음',
-                            country: metadata.국가 || '국가 없음',
-                            paragraphNum: metadata.단락일련번호 || '단락번호 없음',
-                            summary: metadata.주제문 || '요약 없음',
-                            metadata, // 전체 metadata 저장
-                            score: item.score || 0, // 유사도 점수 추가
-                        }
-                    })
+                    console.log('📌 [변환된 newRagResult]:', newRagResult)
+                    const newObj = {
+                        type: 'ai',
+                        list: [...newRagResult],
+                    }
 
-                console.log('📌 [변환된 newRagResult]:', newRagResult)
-                setSimilarClassicalArray(newRagResult)
-            } else {
-                console.warn('⚠️ result가 올바르게 전달되지 않았습니다.')
+                    //similar array update
+                    setSimilarClassicalArray((prev) =>
+                        Array.isArray(prev) ? [...prev, newObj] : [newObj],
+                    )
+                } else {
+                    console.warn('⚠️ result가 올바르게 전달되지 않았습니다.')
+                }
+            } catch (error) {
+                console.error(`🚨 setAdditionalData/ 유사한 고전 원문 : ${error}`)
             }
 
-            // "이런 이야기를 생성해보세요" 섹션 업데이트
-            const recommendations = [
-                result?.newRecommendation?.recommended_1,
-                result?.newRecommendation?.recommended_2,
-                result?.newRecommendation?.recommended_3,
-            ].filter(Boolean)
+            try {
+                // "이런 이야기를 생성해보세요" 섹션 업데이트
+                const recommendations = [
+                    result?.newRecommendation?.recommended_1,
+                    result?.newRecommendation?.recommended_2,
+                    result?.newRecommendation?.recommended_3,
+                ].filter(Boolean)
 
-            if (recommendations.length > 0) {
-                setRecommandStoryArray(recommendations)
-            } else {
-                console.warn('⚠️ recommendations가 올바르게 전달되지 않았습니다.')
+                if (recommendations.length > 0) {
+                    setRecommandStoryArray(recommendations)
+                } else {
+                    console.warn('⚠️ recommendations가 올바르게 전달되지 않았습니다.')
+                }
+            } catch (error) {
+                console.error(`🚨 setAdditionalData/ 이런 이야기를 생성해보세요 : ${error}`)
             }
         },
         [setSimilarClassicalArray, setRecommandStoryArray],
@@ -159,6 +175,7 @@ const MobileMain = ({ historyData }) => {
     // 마지막 사용자 메시지 수정 + AI 생성 요청
     const updateLastUserMessage = useCallback(async (messageId, text, selectedItems) => {
         try {
+            //전체 메시지 수정
             setMessageList((prev) => {
                 // 마지막 AI 메시지 삭제
                 const newMessageList = prev.filter((message, index) => {
@@ -184,6 +201,9 @@ const MobileMain = ({ historyData }) => {
                 parentId: messageId,
             }
             setMessageList((prev) => [...prev, newAiMessage])
+
+            //유사문학 - 마지막 ai 메시지 제거 (사용자메시지는 제거할 필요 없음)
+            setSimilarClassicalArray((prev) => [...prev].slice(0, prev.length - 1))
 
             // 고전문학 데이터 생성 요청 (API 호출)
             const result = await retrieveClassicalLiteratureWithVaiv({
@@ -240,7 +260,6 @@ const MobileMain = ({ historyData }) => {
     // 이야기 생성 요청
     const handleCreateClick = useCallback(
         async (text = null, tags = undefined) => {
-            console.log(text)
             //사용자가 입력한/수정한 메시지 추가
             const setNewUserMessage = (text) => {
                 const newUserMessage = {
@@ -255,6 +274,12 @@ const MobileMain = ({ historyData }) => {
                 if (inputValue.trim() === '') return // 입력값 없으면 무시
                 text = inputValue.trim()
             }
+
+            const newObj = {
+                type: 'user',
+                list: [],
+            }
+            setSimilarClassicalArray((prev) => [...prev, newObj])
 
             try {
                 setNewUserMessage(text)
@@ -293,6 +318,14 @@ const MobileMain = ({ historyData }) => {
                     type: 'user',
                 }
                 setMessageList((prev) => [...prev, newUserMessage])
+
+                // 사용자 메시지 추가
+                const newObj = {
+                    type: 'user',
+                    list: [],
+                }
+
+                setSimilarClassicalArray((prev) => [...prev, newObj])
 
                 // 고전문학 데이터 생성 요청 (API 호출)
                 const result = await retrieveClassicalLiteratureWithVaiv({

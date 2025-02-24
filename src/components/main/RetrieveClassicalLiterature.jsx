@@ -120,14 +120,19 @@ const RetrieveClassicalLiterature = ({
                             )}
                         </div>
 
-                        {!isGenerating && message.type === 'ai' && (
+                        {message.type === 'ai' && (
                             <div className='transition-opacity duration-300 ease-in-out mt-4'>
-                                <ResponseSimilarStory
-                                    similarClassicalArray={similarClassicalArray ?? []}
-                                    updateSelectedSimilarStory={updateSelectedSimilarStory}
-                                />
+                                {/* 유사한 고전 원문 영역 */}
+                                {similarClassicalArray.length > 0 &&
+                                    similarClassicalArray[index]?.type === 'ai' && (
+                                        <ResponseSimilarStory
+                                            similarClassicalArray={similarClassicalArray[index]}
+                                            updateSelectedSimilarStory={updateSelectedSimilarStory}
+                                        />
+                                    )}
 
-                                {lastAiMessageId === message.id && (
+                                {/* 추천 영역 */}
+                                {!isGenerating && lastAiMessageId === message.id && (
                                     <ResponseRecommendations
                                         recommandStoryArray={recommandStoryArray ?? []}
                                         requestNewRecommandStory={requestNewRecommandStory}

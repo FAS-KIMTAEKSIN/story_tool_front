@@ -148,6 +148,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     )
                     //thread_id, conversation_id 추출
                     if (afterData.indexOf('thread_id') > -1) {
+                        console.log('Title added.')
                         //title 추출
                         const createdTitle = afterData.indexOf('"created_title":')
                         const createdTitlePart = afterData.slice(createdTitle)
@@ -176,6 +177,16 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                         conversationId = parseNestedJSON(conversationIdMatch[0])
                             ?.split(':')[1]
                             .trim()
+                        console.log(`threadId, conversationId::  `, threadId, conversationId)
+
+                        //마지막 글자의 줄바꿈 제거
+                        useRetrieveClassicLiteratureStore
+                            .getState()
+                            .setRetrievedLiterature(
+                                useRetrieveClassicLiteratureStore
+                                    .getState()
+                                    .retrievedLiterature.replace(/[\n\r]+$/, ''),
+                            )
 
                         return await retrieveSimilarRecommendation({
                             inputValue,
@@ -186,7 +197,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     }
 
                     const cleanData = parseNestedJSON(afterData)
-                    console.log(JSON.stringify(cleanData))
+                    // console.log(JSON.stringify(cleanData))
                     if (
                         cleanData?.msg === 'process_generating' &&
                         cleanData?.output?.data[0][0] &&
@@ -200,11 +211,11 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                                     cleanData.output.data[0][0][2].replace(/\\n/g, '\n'),
                                 )
                     } else if (cleanData?.msg === 'process_completed') {
-                        console.log('프로세스 종료. process_completed')
+                        console.log('process_completed')
 
                         //title 값 입력
                     } else if (cleanData?.result || cleanData?.thread_id) {
-                        console.log('최후 데이터')
+                        console.log('result')
                         console.log(cleanData.result)
                     }
                 } catch (error) {
