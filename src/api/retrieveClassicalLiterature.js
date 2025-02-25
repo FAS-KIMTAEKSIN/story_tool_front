@@ -110,7 +110,6 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
         return
 
     let threadId = localStorage.getItem('thread_id') ?? null // 로컬스토리지에서 값 가져오기
-    let conversationId = '' // 대화 ID
     try {
         if (threadId) {
             threadId = threadId.trim().replace(/"/g, '') // 앞뒤 공백 및 쌍따옴표 제거
@@ -125,7 +124,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
         localStorage.setItem('content', inputValue)
 
         // API 요청
-        const response = await fetch(`${Config.baseURL}/api/generateWithSearch`, {
+        const response = await fetch(`${Config.baseURL}/api/generate`, {
             method: 'POST',
             headers: Config.headers,
             body: JSON.stringify(requestBody),
@@ -142,42 +141,56 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
             const decodedChunk = decoder.decode(value, { stream: true })
             if (decodedChunk) {
                 try {
-                    const beforeData = removeLeadingData(decodeUnicodeString(decodedChunk))
-                    const afterData = remmoveBackslash(
-                        removeFirstAndLastQuotes(decodeUnicodeString(beforeData)),
-                    )
-                    //thread_id, conversation_id 추출
-                    if (afterData.indexOf('thread_id') > -1) {
-                        console.log('Title added.')
-                        //title 추출
-                        const createdTitle = afterData.indexOf('"created_title":')
-                        const createdTitlePart = afterData.slice(createdTitle)
-                        const createdTitleMatch = createdTitlePart.match(
-                            /"created_title":\s*"(.+?)"/,
-                        )
-                        const createdTitleValue = createdTitleMatch[1]
+                    if (typeof decodedChunk !== 'string') {
+                        console.log('decodedChunk is not string')
+                        continue
+                    }
+                    const beforeData = removeLeadingData(decodedChunk)
+                    let afterData = remmoveBackslash(beforeData)
 
+                    //응답데이터가 이중으로 날아온 경우 예외처리
+                    if (afterData.indexOf('data:') > -1) {
+                        // data: 로 배열로 쪼개기
+                        // debugger
+                        const dataArray = afterData.split('data:')
+                        //{"msg": "expanding", "content": "."} 데이터 형태로 content 에 dataArray 의 content 값이 합쳐져서 들어감.
+                        console.log('data:가 포함된 데이터:', dataArray)
+                        const newObj = {
+                            msg: 'expanding',
+                            content: '',
+                        }
+                        dataArray.forEach((data) => {
+                            const parsedContent = JSON.parse(data.replace(/\n\n/g, ''))
+                            newObj.content += parsedContent.content
+                        })
+                        console.log('data:가 포함된 데이터:', newObj)
+
+                        afterData = newObj
+                    }
+                    const cleanData = parseNestedJSON(afterData)
+
+                    if (cleanData?.thread_id && cleanData?.conversation_id) {
+                        console.log('DATA is LAST. ------\n', cleanData)
+                        //title 에서 특수문자를 제거한 값을 입력
+                        const createdTitle = cleanData?.result?.created_title ?? ''
+                        const parsedTitle = createdTitle.replace(/[^a-zA-Z0-9ㄱ-ㅎ가-힣\s]/g, '')
+
+                        //title 값 세팅
                         useRetrieveClassicLiteratureStore
                             .getState()
-                            .setRetrievedLiteratureTitle(createdTitleValue ?? '')
+                            .setRetrievedLiteratureTitle(parsedTitle)
+
+                        console.log('1️⃣.고전문학 제목::  ', parsedTitle)
+
+                        //ThreadId 와 ConversationId 값 세팅
+                        const newThreadId = cleanData?.thread_id ?? 0 //number
+                        const newConversationId = cleanData?.conversation_id ?? 0 //number
 
                         console.log(
-                            useRetrieveClassicLiteratureStore.getState().retrievedLiteratureTitle,
+                            '2️⃣.threadId, conversationId :  ',
+                            newThreadId,
+                            newConversationId,
                         )
-
-                        // thread_id를 기준으로 문자열 자르기
-                        const threadIdIndex = afterData.indexOf('"thread_id":')
-                        const threadIdPart = afterData.slice(threadIdIndex)
-
-                        // thread_id와 conversation_id 추출
-                        const threadIdMatch = threadIdPart.match(/"thread_id":\s*(\d+)/)
-                        const conversationIdMatch = threadIdPart.match(/"conversation_id":\s*(\d+)/)
-
-                        threadId = parseNestedJSON(threadIdMatch[0])?.split(':')[1].trim()
-                        conversationId = parseNestedJSON(conversationIdMatch[0])
-                            ?.split(':')[1]
-                            .trim()
-                        console.log(`threadId, conversationId::  `, threadId, conversationId)
 
                         //마지막 글자의 줄바꿈 제거
                         useRetrieveClassicLiteratureStore
@@ -188,35 +201,29 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                                     .retrievedLiterature.replace(/[\n\r]+$/, ''),
                             )
 
-                        return await retrieveSimilarRecommendation({
+                        const param = {
                             inputValue,
                             selectedItems,
-                            threadId,
-                            conversationId,
+                            threadId: String(newThreadId),
+                            conversationId: String(newConversationId),
+                        }
+                        console.log(`retrieveSimilarRecommendation_param: ${param}`)
+                        return await retrieveSimilarRecommendation({
+                            ...param,
                         })
                     }
 
-                    const cleanData = parseNestedJSON(afterData)
-                    // console.log(JSON.stringify(cleanData))
                     if (
-                        cleanData?.msg === 'process_generating' &&
-                        cleanData?.output?.data[0][0] &&
-                        cleanData?.output?.data[0][0].length >= 1
+                        cleanData?.msg === 'expanding' &&
+                        cleanData?.content &&
+                        cleanData?.content.length >= 1
                     ) {
-                        if (cleanData?.output?.data[0][0][0] === 'append')
-                            //store에 저장
-                            useRetrieveClassicLiteratureStore
-                                .getState()
-                                .appendLiterature(
-                                    cleanData.output.data[0][0][2].replace(/\\n/g, '\n'),
-                                )
-                    } else if (cleanData?.msg === 'process_completed') {
-                        console.log('process_completed')
-
-                        //title 값 입력
-                    } else if (cleanData?.result || cleanData?.thread_id) {
-                        console.log('result')
-                        console.log(cleanData.result)
+                        //store에 저장
+                        useRetrieveClassicLiteratureStore
+                            .getState()
+                            .appendLiterature(cleanData.content)
+                    } else {
+                        console.log('🅾 ExceptionCase Occured')
                     }
                 } catch (error) {
                     console.error('Error:', error)
@@ -302,21 +309,8 @@ export const retrieveSimilarRecommendation = async ({
     }
 }
 
-// 백슬래시를 제거하되 줄바꿈은 유지
-const remmoveBackslash = (str) => str.replace(/\\(?![n\r])/g, '').replace(/""/g, '"')
-
-// 줄바꿈 관련 처리 제거
-const removeFirstAndLastQuotes = (str) =>
-    str
-        .replace(/"{/g, '{')
-        .replace(/}"/g, '}')
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\t/g, '\\t')
-
-//유니코드 문자열 디코딩
-const decodeUnicodeString = (str) =>
-    str.replace(/u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+// ""와 줄바꿈을 제외한 모든 내용 화면에 정상적으로 노출 될 수 있도록 처리
+const remmoveBackslash = (str) => str.replace(/\\(?![n\r"])/g, '')
 
 //중첩 JSON 파싱
 const parseNestedJSON = (jsonString) => {
@@ -327,9 +321,6 @@ const parseNestedJSON = (jsonString) => {
         } catch (e) {
             break
         }
-    }
-    if (result?.content && typeof result?.content === 'string') {
-        result.content = JSON.parse(result.content)
     }
     return result
 }
