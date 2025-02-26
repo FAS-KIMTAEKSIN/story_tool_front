@@ -173,11 +173,28 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
+        let buffer = '' //네트워크 속도 문제로 추가
 
         while (true) {
             const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value, { stream: true })
+            console.log(chunk)
 
-            const decodedChunk = decoder.decode(value, { stream: true })
+            buffer += chunk
+            let isDataEnd = false
+
+            // Check if the buffer ends with a complete JSON object
+            if (buffer.trim().endsWith('}')) {
+                isDataEnd = true
+            }
+
+            if (!isDataEnd) {
+                continue
+            }
+            const decodedChunk = buffer
+            buffer = ''
+
             if (decodedChunk) {
                 try {
                     if (typeof decodedChunk !== 'string') {
@@ -288,8 +305,6 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     console.error('Error:', error)
                 }
             }
-
-            if (done) break
         }
     } catch (error) {
         console.error('🚨 [API 요청 중 오류 발생]: ', error.message)
@@ -389,7 +404,7 @@ const removeLeadingData = (str) => {
     if (str.startsWith(',data:')) {
         return str.slice(str.indexOf(':') + 1).trim()
     }
-    if (str.startsWith('data:')) {
+    if (str.startsWith('data: ')) {
         return str.slice(str.indexOf(':') + 1).trim()
     }
     return str
