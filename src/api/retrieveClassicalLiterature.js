@@ -186,6 +186,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     }
                     const beforeData = removeLeadingData(decodedChunk) //String
                     let afterData = remmoveBackslash(beforeData) //String
+                    console.log('📡 전달받은데이터: \n', afterData)
 
                     if (afterData.indexOf('"status": "generating"') > -1) {
                         console.log('🔄 데이터 생성 시작.', afterData)
