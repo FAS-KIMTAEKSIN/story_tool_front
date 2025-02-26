@@ -103,6 +103,45 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
     console.log('retrieveClassicalLiterature:\n', inputValue, '\n', selectedItems)
     useRetrieveClassicLiteratureStore.getState().updateIsGenerating(true) //isLoading
 
+    const callSimilarRecommendation = async (cleanData) => {
+        console.log('callSimilarRecommendation \n', cleanData)
+
+        //title 에서 특수문자를 제거한 값을 입력
+        const createdTitle = cleanData?.result?.created_title ?? ''
+        const parsedTitle = createdTitle.replace(/[^a-zA-Z0-9ㄱ-ㅎ가-힣\s]/g, '')
+
+        //title 값 세팅
+        useRetrieveClassicLiteratureStore.getState().setRetrievedLiteratureTitle(parsedTitle)
+
+        console.log('1️⃣.고전문학 제목::  ', parsedTitle)
+
+        //ThreadId 와 ConversationId 값 세팅
+        const newThreadId = cleanData?.thread_id ?? 0 //number
+        const newConversationId = cleanData?.conversation_id ?? 0 //number
+
+        console.log('2️⃣.threadId, conversationId :  ', newThreadId, newConversationId)
+
+        //마지막 글자의 줄바꿈 제거
+        useRetrieveClassicLiteratureStore
+            .getState()
+            .setRetrievedLiterature(
+                useRetrieveClassicLiteratureStore
+                    .getState()
+                    .retrievedLiterature.replace(/[\n\r]+$/, ''),
+            )
+
+        const param = {
+            inputValue,
+            selectedItems,
+            threadId: String(newThreadId),
+            conversationId: String(newConversationId),
+        }
+        console.log(`retrieveSimilarRecommendation_param: ${param}`)
+        return await retrieveSimilarRecommendation({
+            ...param,
+        })
+    }
+
     if (
         !typeof inputValue === 'string' ||
         !(inputValue.trim() || Object.keys(selectedItems).length > 0)
@@ -145,85 +184,102 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                         console.log('decodedChunk is not string')
                         continue
                     }
-                    const beforeData = removeLeadingData(decodedChunk)
-                    let afterData = remmoveBackslash(beforeData)
+                    const beforeData = removeLeadingData(decodedChunk) //String
+                    let afterData = remmoveBackslash(beforeData) //String
+
+                    if (afterData.indexOf('"status": "generating"') > -1) {
+                        console.log('🔄 데이터 생성 시작.', afterData)
+                        continue
+                    } else if (afterData.indexOf('base_story_completed') > -1) {
+                        console.log('0️⃣ 기본 컨텐츠 생성이 완료되었습니다.', afterData)
+                        continue
+                    }
 
                     //응답데이터가 이중으로 날아온 경우 예외처리
                     if (afterData.indexOf('data:') > -1) {
-                        // data: 로 배열로 쪼개기
-                        // debugger
-                        const dataArray = afterData.split('data:')
+                        const dataArray = afterData.split('data:') // data: 로 배열로 쪼개기
                         //{"msg": "expanding", "content": "."} 데이터 형태로 content 에 dataArray 의 content 값이 합쳐져서 들어감.
-                        console.log('data:가 포함된 데이터:', dataArray)
                         const newObj = {
                             msg: 'expanding',
                             content: '',
                         }
                         dataArray.forEach((data) => {
-                            const parsedContent = JSON.parse(data.replace(/\n\n/g, ''))
-                            newObj.content += parsedContent.content
+                            //JSON pasing 이 정상적으로 된 경우에만 content 에 추가
+                            const parsedContent = parseNestedJSON(data.replace(/\n\n/g, ''))
+
+                            if (typeof parsedContent !== 'string') {
+                                console.log(`[중첩 데이터]: ${parsedContent.content}`)
+                                newObj.content += parsedContent.content
+                            } else {
+                                console.log(
+                                    `🅰중첩 데이터가 정상적으로 파싱 되지 않아 다시 data로 나눕니다.\n`,
+                                    parsedContent,
+                                )
+
+                                parsedContent.split('data:').forEach(async (data) => {
+                                    if (data.indexOf('thread_id') > -1) {
+                                        console.log(
+                                            '🅰중첩 데이터 thread_id, conversation_id 처리\n',
+                                            data,
+                                        )
+                                        const parsedLastData = parseNestedJSON(data)
+
+                                        //마지막 데이터를 parsing 정상적으로 처리되었을 경우
+                                        if (typeof parsedLastData !== 'string') {
+                                            console.log(
+                                                '🅱 정상적으로 파싱되었습니다 \n',
+                                                parsedLastData,
+                                            )
+                                            return await callSimilarRecommendation(parsedLastData)
+                                        }
+                                    }
+                                    //마지막 데이터가 아닌 경우 다시 newObj.content 에 추가
+                                    else {
+                                        data = parseNestedJSON(data)
+                                        newObj.content += data.content
+                                    }
+                                })
+                            }
                         })
-                        console.log('data:가 포함된 데이터:', newObj)
 
                         afterData = newObj
                     }
-                    const cleanData = parseNestedJSON(afterData)
+
+                    //cleanData JSONparsing
+                    let cleanData = parseNestedJSON(afterData)
 
                     if (cleanData?.thread_id && cleanData?.conversation_id) {
-                        console.log('DATA is LAST. ------\n', cleanData)
-                        //title 에서 특수문자를 제거한 값을 입력
-                        const createdTitle = cleanData?.result?.created_title ?? ''
-                        const parsedTitle = createdTitle.replace(/[^a-zA-Z0-9ㄱ-ㅎ가-힣\s]/g, '')
-
-                        //title 값 세팅
-                        useRetrieveClassicLiteratureStore
-                            .getState()
-                            .setRetrievedLiteratureTitle(parsedTitle)
-
-                        console.log('1️⃣.고전문학 제목::  ', parsedTitle)
-
-                        //ThreadId 와 ConversationId 값 세팅
-                        const newThreadId = cleanData?.thread_id ?? 0 //number
-                        const newConversationId = cleanData?.conversation_id ?? 0 //number
-
-                        console.log(
-                            '2️⃣.threadId, conversationId :  ',
-                            newThreadId,
-                            newConversationId,
-                        )
-
-                        //마지막 글자의 줄바꿈 제거
-                        useRetrieveClassicLiteratureStore
-                            .getState()
-                            .setRetrievedLiterature(
-                                useRetrieveClassicLiteratureStore
-                                    .getState()
-                                    .retrievedLiterature.replace(/[\n\r]+$/, ''),
-                            )
-
-                        const param = {
-                            inputValue,
-                            selectedItems,
-                            threadId: String(newThreadId),
-                            conversationId: String(newConversationId),
-                        }
-                        console.log(`retrieveSimilarRecommendation_param: ${param}`)
-                        return await retrieveSimilarRecommendation({
-                            ...param,
-                        })
+                        console.log('DATA is LAST. ------')
+                        return await callSimilarRecommendation(cleanData)
                     }
+
+                    //1. 정상케이스
+                    //2. 마지막 데이터가 중첩되어져서 나올 경우
+                    //3. 그 외 미확인 혹은 미사용 데이터가 나오는 경우
 
                     if (
                         cleanData?.msg === 'expanding' &&
                         cleanData?.content &&
                         cleanData?.content.length >= 1
                     ) {
+                        console.log('[정상 데이터]:', cleanData.content)
                         //store에 저장
                         useRetrieveClassicLiteratureStore
                             .getState()
                             .appendLiterature(cleanData.content)
+                    } else if (typeof cleanData === 'string') {
+                        //중첩 데이터가 정상적으로 파싱 되지 않아 String 형태일때 (마지막-1 + 마지막 데이터 )
+                        if (cleanData.indexOf('data:') > -1) {
+                        }
                     } else {
-                        console.log('🅾 ExceptionCase Occured')
+                        if (cleanData?.created_content && cleanData?.created_title) {
+                            console.log(
+                                '✅ 제목과 컨텐츠 내용은 다음 데이터에서 가져옵니다.\n',
+                                cleanData,
+                            )
+                        } else {
+                            console.info('❌ [REAL Exception]\n', cleanData)
+                        }
                     }
                 } catch (error) {
                     console.error('Error:', error)
