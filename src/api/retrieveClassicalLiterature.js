@@ -271,6 +271,8 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                         //중첩 데이터가 정상적으로 파싱 되지 않아 String 형태일때 (마지막-1 + 마지막 데이터 )
                         if (cleanData.indexOf('data:') > -1) {
                         }
+                    } else if (cleanData?.msg === 'completion_pending') {
+                        console.log('🔄 마지막 데이터 로딩 중...')
                     } else {
                         if (cleanData?.created_content && cleanData?.created_title) {
                             console.log(
