@@ -78,6 +78,7 @@ export const retrieveAnalize = async (similarText) => {
             headers: Config.headers,
             body: JSON.stringify({
                 title: pTitle, // 실제로는 props로 전달받은 제목 사용
+                threadId: localStorage.getItem('thread_id') ?? null,
             }),
         })
 
@@ -376,6 +377,10 @@ export const retrieveSimilarRecommendation = async ({
 
         console.log(newSimilarText)
         console.log(newRecommendation)
+
+        //로컬스토리지에 conversationId, threadId 저장 > 추가 로직 시 필요
+        localStorage.setItem('conversation_id', conversationId)
+        localStorage.setItem('thread_id', threadId)
 
         return { newSimilarText, newRecommendation }
     } else {
