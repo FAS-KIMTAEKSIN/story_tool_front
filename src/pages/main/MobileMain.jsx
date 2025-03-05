@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
-    retrieveClassicalLiterature,
     retrieveAnalize,
     retrieveClassicalLiteratureWithVaiv,
 } from '../../api/retrieveClassicalLiterature'
 import { IoMdSend } from 'react-icons/io'
-import LoadingBar from '../../components/LoadingBar'
+import { FaRegStopCircle } from 'react-icons/fa'
 import TagFilters from '../../components/main/TagFilters'
 import RetrieveClassicalLiterature from '../../components/main/RetrieveClassicalLiterature'
 import ResponseRecommendationDetail from '../../components/modals/ResponseRecommendationDetail'
 import ResponseRecommendationAnalized from '../../components/modals/ResponseRecommendationAnalized'
 import FillterIcon from '../../assets/filter.png'
 import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
+import RegenerateButton from '../../components/response/RegenerateButton'
 
 /**
  * @description 메인 화면
@@ -23,7 +23,6 @@ const MobileMain = ({ historyData }) => {
     const [selectedItems, setSelectedItems] = useState({})
     const [inputValue, setInputValue] = useState('')
     const [isDetailVisible, setIsDetailVisible] = useState(false)
-    // const [isLoading, setIsLoading] = useState(false)
     const [messageList, setMessageList] = useState([]) // user, ai 의 메시지를 담는 배열
     const [editingMessageId, setEditingMessageId] = useState(null) // 수정 중인 메시지 ID
     const [currentTags, setCurrentTags] = useState({}) // 현재 메시지에 사용된 태그
@@ -42,6 +41,7 @@ const MobileMain = ({ historyData }) => {
         (state) => state.retrievedLiteratureTitle,
     )
     const isLoading = useRetrieveClassicLiteratureStore((state) => state.isGenerating)
+    const isStopped = useRetrieveClassicLiteratureStore((state) => state.isStopped)
 
     // 초기화: localStorage 정리
     useEffect(() => {
@@ -60,8 +60,7 @@ const MobileMain = ({ historyData }) => {
 
     /**
      * 부수적인 정보 값 세팅 (유사한 고전원문 + 이런 이야기~)
-     * @param {Array} ragResult 유사한 고전 원문
-     * @param {Array} recommendations 이런 이야기를 생성해보세요
+     * @param {Object} result API 응답 결과
      */
     const setAdditionalData = useCallback(
         (result) => {
@@ -94,7 +93,7 @@ const MobileMain = ({ historyData }) => {
                     const newObj = {
                         type: 'ai',
                         list: [...newRagResult],
-                        noResult: noResultCount === 3 ? true : false, //결과 존재여부
+                        noResult: noResultCount === 3, // 결과 존재여부 (간결하게 수정)
                     }
 
                     //similar array update
@@ -199,7 +198,6 @@ const MobileMain = ({ historyData }) => {
                 setSimilarClassicalArray([])
                 historyData.conversation_history.map((conv, index) => {
                     //마지막 요소가 아닌 경우만 ////
-                    // //(ai 항목은 추가하지않음) - setAdditionalData 에서 추가예정
                     if (index !== historyData.conversation_history.length - 1) {
                         //마지막 배열이 아닌 경우에만 ai 값까지 추가
                         setSimilarClassicalArray((prev) => [...prev, _blankUserObj])
@@ -324,18 +322,21 @@ const MobileMain = ({ historyData }) => {
                 }
                 setMessageList((prev) => [...prev, newUserMessage])
             }
+
             //이야기를 작성하고 신규 생성할 때
             if (text === null) {
                 if (inputValue.trim() === '') return // 입력값 없으면 무시
                 text = inputValue.trim()
             }
 
+            //유사 고전 원문 추가 - 사용자 값은 빈값으로 넣어 줌
             const newObj = {
                 type: 'user',
                 list: [],
             }
             setSimilarClassicalArray((prev) => [...prev, newObj])
 
+            //본내용 시작
             try {
                 setNewUserMessage(text)
                 const newSelectedItems = tags ? tags : JSON.parse(JSON.stringify(selectedItems))
@@ -343,7 +344,7 @@ const MobileMain = ({ historyData }) => {
 
                 // 고전문학 데이터 생성 요청 (API 호출)
                 const result = await retrieveClassicalLiteratureWithVaiv({
-                    inputValue,
+                    inputValue: text,
                     selectedItems: newSelectedItems,
                 })
 
@@ -357,15 +358,14 @@ const MobileMain = ({ historyData }) => {
                 setCurrentTags({}) // 태그 초기화
             }
         },
-        [inputValue, selectedItems, setCurrentTags],
-    ) // 의존성 배열 명시
+        [inputValue, selectedItems, setCurrentTags, setAdditionalData],
+    ) // 의존성 배열에 setAdditionalData 추가
 
     /**
      * @description 이야기 생성 요청 함수
      */
     const requestNewStory = useCallback(
         async (story, tags = undefined) => {
-            console.log(story)
             try {
                 const newUserMessage = {
                     id: Date.now(),
@@ -381,6 +381,7 @@ const MobileMain = ({ historyData }) => {
                 }
 
                 setSimilarClassicalArray((prev) => [...prev, newObj])
+                useRetrieveClassicLiteratureStore.getState().setBeforeTextInput(story) // 이전 입력값 저장
 
                 // 고전문학 데이터 생성 요청 (API 호출)
                 const result = await retrieveClassicalLiteratureWithVaiv({
@@ -390,7 +391,8 @@ const MobileMain = ({ historyData }) => {
                 // 추가 데이터 세팅
                 setAdditionalData(result)
             } catch (e) {
-                console.error(e)
+                console.error('🚨 새 이야기 요청 중 오류:', e)
+                alert('이야기 생성 중 오류가 발생했습니다.')
             }
         },
         [setAdditionalData, setMessageList],
@@ -432,15 +434,11 @@ const MobileMain = ({ historyData }) => {
 
     const handleAnalyze = async (story) => {
         console.log(story)
-        // setIsLoading(true)
         const analizedResult = await retrieveAnalize(story)
 
         setAnalizedSimilarStory({ ...analizedResult, title: story.title })
-
         setSelectedSimilarStory(null)
         updateIsOpenSimilarStory() //open close 제어
-
-        // setIsLoading(false)
     }
 
     const updateIsOpenSimilarStory = () => {
@@ -456,9 +454,15 @@ const MobileMain = ({ historyData }) => {
         }
     }
 
+    // 검색종료버튼
+    const handleStop = useCallback(() => {
+        const store = useRetrieveClassicLiteratureStore.getState()
+        store.abortController.abort()
+        store.setIsStopped(true)
+    }, [])
+
     return (
         <>
-            {isLoading && <LoadingBar />}
             {/* 내용이 없을 때 표시되는 메시지 */}
             {!inputValue.trim() && messageList.length === 0 && (
                 <div className='flex items-center justify-center flex-1 text-center text-gray-500 text-sm italic'>
@@ -468,7 +472,6 @@ const MobileMain = ({ historyData }) => {
                     </p>
                 </div>
             )}
-
             {/* 대화 내용 */}
             <RetrieveClassicalLiterature
                 messageList={messageList} //메시지 목록
@@ -480,81 +483,112 @@ const MobileMain = ({ historyData }) => {
                 updateSelectedSimilarStory={updateSelectedSimilarStory}
                 isLoading={isLoading}
             />
-
             {/* 하단 입력부 */}
             <div className='w-full max-h-56 fixed bottom-2 p-2 flex space-x-2'>
-                <div className='w-full h-full flex flex-col border border-gray-300 rounded-md bg-white shadow-md p-2'>
-                    <div className='w-full h-full flex items-center'>
-                        {/* Textarea 영역 */}
-                        <div className='flex-1 h-full'>
-                            <textarea
-                                ref={inputValueRef}
-                                className='w-full h-full border-none focus:outline-none resize-none bg-transparent overflow-y-auto max-h-28 p-2'
-                                placeholder='예) 귀신이 소년을 괴롭혀서 소년이 울어버리는 이야기'
-                                value={inputValue}
-                                onChange={(e) => {
-                                    setInputValue(e.target.value)
-                                    handleTextareaResize(e)
-                                }}
-                                rows={3} // 기본 높이 설정 (자동 조절 가능)
-                            />
-                        </div>
-                        {/* 버튼 그룹 */}
-                        <div className='h-full flex flex-col pl-2 space-y-2'>
-                            {/* Send 버튼 */}
-                            <button
-                                className={`flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none 
-                                ${
-                                    inputValue.trim()
-                                        ? 'bg-black text-white hover:bg-gray-600 active:bg-gray-900'
-                                        : 'bg-gray-100 text-gray-700 cursor-not-allowed'
-                                }`}
-                                onClick={handleSubmit}
-                                disabled={!inputValue.trim() || isLoading}
-                            >
-                                {editingMessageId ? '수정' : <IoMdSend className='text-lg' />}
-                            </button>
+                {/* 정지: 재생성 버튼 // 정상: 텍스트 입력 영역 */}
+                {isStopped ? (
+                    <RegenerateButton
+                        handleCreateClick={handleCreateClick}
+                        messageList={messageList}
+                        setMessageList={setMessageList}
+                        similarClassicalArray={similarClassicalArray}
+                        setSimilarClassicalArray={setSimilarClassicalArray}
+                    />
+                ) : (
+                    <div className='w-full h-full flex flex-col border border-gray-300 rounded-md bg-white shadow-md p-2'>
+                        <div className='w-full h-full flex items-center'>
+                            <div className='flex-1 h-full'>
+                                <textarea
+                                    ref={inputValueRef}
+                                    className='w-full h-full border-none focus:outline-none resize-none bg-transparent overflow-y-auto max-h-28 p-2'
+                                    placeholder='예) 귀신이 소년을 괴롭혀서 소년이 울어버리는 이야기'
+                                    value={inputValue}
+                                    onChange={(e) => {
+                                        setInputValue(e.target.value)
+                                        handleTextareaResize(e)
+                                    }}
+                                    onKeyUp={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleSubmit()
+                                            e.preventDefault()
+                                        }
+                                    }}
+                                    rows={3} // 기본 높이 설정 (자동 조절 가능)
+                                />
+                            </div>
 
-                            {editingMessageId && (
+                            {/* 버튼 그룹 */}
+                            <div className='h-full flex flex-col pl-2 space-y-2'>
+                                {/* stop 버튼 */}
+                                {isLoading ? (
+                                    <button
+                                        className='flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none'
+                                        onClick={handleStop}
+                                    >
+                                        <FaRegStopCircle className='text-lg' />
+                                    </button>
+                                ) : (
+                                    <>
+                                        {/* Send 버튼 */}
+                                        <button
+                                            className={`flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none 
+                                        ${
+                                            inputValue.trim()
+                                                ? 'bg-black text-white hover:bg-gray-600 active:bg-gray-900'
+                                                : 'bg-gray-100 text-gray-700 cursor-not-allowed'
+                                        }`}
+                                            onClick={handleSubmit}
+                                            disabled={!inputValue.trim() || isLoading}
+                                        >
+                                            {editingMessageId ? (
+                                                '수정'
+                                            ) : (
+                                                <IoMdSend className='text-lg' />
+                                            )}
+                                        </button>
+                                    </>
+                                )}
+
+                                {editingMessageId && (
+                                    <button
+                                        className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
+                                        onClick={handleCancelEdit}
+                                    >
+                                        취소
+                                    </button>
+                                )}
+
+                                {/* Settings 버튼 */}
                                 <button
                                     className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
-                                    onClick={handleCancelEdit}
+                                    onClick={handleIsDetailVisible}
                                 >
-                                    취소
+                                    <img src={FillterIcon} alt='Filter' className='w-5 h-5' />
                                 </button>
-                            )}
-
-                            {/* Settings 버튼 */}
-                            <button
-                                className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
-                                onClick={handleIsDetailVisible}
-                            >
-                                <img src={FillterIcon} alt='Filter' className='w-5 h-5' />
-                            </button>
+                            </div>
+                        </div>
+                        {/* 선택된 태그가 나열되는 위치. 기본 1rem */}
+                        <div className='h-10 overflow-x-auto whitespace-nowrap'>
+                            {/* 스크롤 속성 적용 및 높이 지정 */}
+                            <div className='flex gap-1 p-1'>
+                                {/* p-1 추가 */}
+                                {Object.entries(selectedItems).map(([key, items]) =>
+                                    items.map((item, index) => (
+                                        <button // div 대신 button 사용 (삭제 기능 고려)
+                                            key={`${key}-${item}-${index}`} // index 추가해서 key 중복 방지
+                                            className='px-2 py-1 text-xs text-gray-500 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none' // hover 효과 추가
+                                            onClick={() => handleDeleteTag(key, item)} // 삭제 기능 추가
+                                        >
+                                            {item}
+                                            {/*<TiDelete className="inline" /> 삭제 아이콘 숨김: 영역이 너무 길게 나타남. */}
+                                        </button>
+                                    )),
+                                )}
+                            </div>
                         </div>
                     </div>
-                    {/* 선택된 태그가 나열되는 위치. 기본 1rem */}
-                    <div className='h-10 overflow-x-auto whitespace-nowrap'>
-                        {/* 스크롤 속성 적용 및 높이 지정 */}
-                        <div className='flex gap-1 p-1'>
-                            {/* p-1 추가 */}
-                            {Object.entries(selectedItems).map(([key, items]) =>
-                                items.map((item, index) => (
-                                    <button // div 대신 button 사용 (삭제 기능 고려)
-                                        key={`${key}-${item}-${index}`} // index 추가해서 key 중복 방지
-                                        className='px-2 py-1 text-xs text-gray-500 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none' // hover 효과 추가
-                                        onClick={() => handleDeleteTag(key, item)} // 삭제 기능 추가
-                                    >
-                                        {item}
-                                        {/*<TiDelete className="inline" /> 삭제 아이콘 숨김: 영역이 너무 길게 나타남. */}
-                                    </button>
-                                )),
-                            )}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
-
             {/* 태그 필터 팝업 */}
             {isDetailVisible && (
                 <TagFilters
@@ -564,7 +598,6 @@ const MobileMain = ({ historyData }) => {
                     setIsDetailVisible={handleIsDetailVisible} // handleIsDetailVisible 함수 전달
                 />
             )}
-
             {/* detail 바텀시트 */}
             {selectedSimilarStory && (
                 <ResponseRecommendationDetail
@@ -573,7 +606,6 @@ const MobileMain = ({ historyData }) => {
                     handleAnalyze={handleAnalyze}
                 />
             )}
-
             {/* 유사한 분석 원문 완료 후 노출 */}
             {analizedSimilarStory && !isOpenSimilarStory && (
                 <ResponseRecommendationAnalized

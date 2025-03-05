@@ -11,53 +11,49 @@ export const retrieveClassicalLiterature = async ({ inputValue, selectedItems })
     console.log('retrieveClassicalLiterature:\n', inputValue, '\n', selectedItems)
 
     if (
-        typeof inputValue === 'string' &&
-        (inputValue.trim() || Object.keys(selectedItems).length > 0)
+        typeof inputValue !== 'string' ||
+        !(inputValue.trim() || Object.keys(selectedItems).length > 0)
     ) {
-        try {
-            let threadId = localStorage.getItem('thread_id') // 로컬스토리지에서 값 가져오기
-
-            if (threadId) {
-                threadId = threadId.trim().replace(/"/g, '') // 앞뒤 공백 및 쌍따옴표 제거
-            } else {
-                threadId = null // 값이 없으면 null 설정
-            }
-
-            const requestBody = {
-                user_input: inputValue,
-                tags: selectedItems,
-                thread_id: threadId,
-            }
-
-            localStorage.setItem('content', inputValue)
-
-            // API 요청
-            const response = await fetch(`${Config.baseURL}/api/generateWithSearch`, {
-                method: 'POST',
-                headers: Config.headers,
-                body: JSON.stringify(requestBody),
-            })
-
-            if (!response.ok) {
-                const errorText = await response.text()
-                console.error(`❌ [API Error (${response.status})]:`, errorText)
-                throw new Error(`API Error (${response.status}): ${errorText}`)
-            }
-
-            const jsonResponse = await response.json()
-            console.log('✅ [API 응답 데이터]:', jsonResponse)
-
-            // 로컬스토리지에 저장
-            localStorage.setItem('ragResult', JSON.stringify(jsonResponse.result))
-            localStorage.setItem('fineTuningResult', JSON.stringify(jsonResponse.result))
-            console.log(jsonResponse)
-            return jsonResponse
-        } catch (error) {
-            console.error('🚨 [API 요청 중 오류 발생]:', error)
-            alert(`요청 처리 중 오류가 발생했습니다: ${error.message}`)
-        }
-    } else {
         alert('내용을 입력하거나 태그를 선택해주세요.')
+        return
+    }
+
+    try {
+        let threadId = localStorage.getItem('thread_id') // 로컬스토리지에서 값 가져오기
+        threadId = threadId ? threadId.trim().replace(/"/g, '') : null // 앞뒤 공백 및 쌍따옴표 제거
+
+        const requestBody = {
+            user_input: inputValue,
+            tags: selectedItems,
+            thread_id: threadId,
+        }
+
+        localStorage.setItem('content', inputValue)
+
+        // API 요청
+        const response = await fetch(`${Config.baseURL}/api/generateWithSearch`, {
+            method: 'POST',
+            headers: Config.headers,
+            body: JSON.stringify(requestBody),
+        })
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            console.error(`❌ [API Error (${response.status})]:`, errorText)
+            throw new Error(`API Error (${response.status}): ${errorText}`)
+        }
+
+        const jsonResponse = await response.json()
+        console.log('✅ [API 응답 데이터]:', jsonResponse)
+
+        // 로컬스토리지에 저장
+        localStorage.setItem('ragResult', JSON.stringify(jsonResponse.result))
+        localStorage.setItem('fineTuningResult', JSON.stringify(jsonResponse.result))
+
+        return jsonResponse
+    } catch (error) {
+        console.error('🚨 [API 요청 중 오류 발생]:', error)
+        alert(`요청 처리 중 오류가 발생했습니다: ${error.message}`)
     }
 }
 
@@ -99,10 +95,33 @@ export const retrieveAnalize = async (similarText) => {
  * @param {Array} selectedItems
  * @returns 없음 - store 사용
  */
-export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selectedItems }) => {
-    //기존 로직을 토대로 신규 Viav 데이터 Streaming 로직 추가
-    console.log('retrieveClassicalLiterature:\n', inputValue, '\n', selectedItems)
+export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', selectedItems }) => {
+    // 입력값 검증
+    if (
+        typeof inputValue !== 'string' ||
+        !(inputValue.trim() || Object.keys(selectedItems).length > 0)
+    ) {
+        return
+    }
+
+    // isStopped 상태가 true일 경우, AbortController를 null로 설정
+    if (useRetrieveClassicLiteratureStore.getState().isStopped) {
+        useRetrieveClassicLiteratureStore.getState().setAbortController(null) // AbortController 초기화
+        useRetrieveClassicLiteratureStore.getState().setIsStopped(false) // isStopped 상태 초기화
+    }
+    useRetrieveClassicLiteratureStore.getState().setBeforeTextInput(inputValue) // 이전 입력값 저장
+
+    // 새로운 AbortController 인스턴스 생성
+    const abortController = new AbortController()
+    useRetrieveClassicLiteratureStore.getState().setAbortController(abortController)
     useRetrieveClassicLiteratureStore.getState().updateIsGenerating(true) //isLoading
+
+    let similarRecommendationResult = null
+    let threadId = localStorage.getItem('thread_id') ?? null
+
+    if (threadId) {
+        threadId = threadId.trim().replace(/"/g, '') // 앞뒤 공백 및 쌍따옴표 제거
+    }
 
     const callSimilarRecommendation = async (cleanData) => {
         console.log('callSimilarRecommendation \n', cleanData)
@@ -143,18 +162,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
         })
     }
 
-    if (
-        !typeof inputValue === 'string' ||
-        !(inputValue.trim() || Object.keys(selectedItems).length > 0)
-    )
-        return
-
-    let threadId = localStorage.getItem('thread_id') ?? null // 로컬스토리지에서 값 가져오기
     try {
-        if (threadId) {
-            threadId = threadId.trim().replace(/"/g, '') // 앞뒤 공백 및 쌍따옴표 제거
-        }
-
         const requestBody = {
             user_input: inputValue,
             tags: selectedItems,
@@ -163,12 +171,14 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
 
         localStorage.setItem('content', inputValue)
 
-        // API 요청
+        // API 요청에 signal 추가
         const response = await fetch(`${Config.baseURL}/api/generate`, {
             method: 'POST',
             headers: Config.headers,
             body: JSON.stringify(requestBody),
+            signal: useRetrieveClassicLiteratureStore.getState().abortController.signal, // AbortController의 signal 추가
         })
+
         useRetrieveClassicLiteratureStore.getState().setRetrievedLiterature('') //초기화
         useRetrieveClassicLiteratureStore.getState().setRetrievedLiteratureTitle('') //초기화
 
@@ -178,9 +188,10 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
 
         while (true) {
             const { done, value } = await reader.read()
+
             if (done) break
+
             const chunk = decoder.decode(value, { stream: true })
-            console.log(chunk)
 
             buffer += chunk
             let isDataEnd = false
@@ -204,7 +215,6 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                     }
                     const beforeData = removeLeadingData(decodedChunk) //String
                     let afterData = remmoveBackslash(beforeData) //String
-                    console.log('📡 전달받은데이터: \n', afterData)
 
                     if (afterData.indexOf('"status": "generating"') > -1) {
                         console.log('🔄 데이터 생성 시작.', afterData)
@@ -269,7 +279,8 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
 
                     if (cleanData?.thread_id && cleanData?.conversation_id) {
                         console.log('DATA is LAST. ------')
-                        return await callSimilarRecommendation(cleanData)
+                        similarRecommendationResult = await callSimilarRecommendation(cleanData)
+                        break // while문 빠져나가기
                     }
 
                     //1. 정상케이스
@@ -281,7 +292,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
                         cleanData?.content &&
                         cleanData?.content.length >= 1
                     ) {
-                        console.log('[정상 데이터]:', cleanData.content)
+                        console.log('[Append]. ', cleanData.content)
                         //store에 저장
                         useRetrieveClassicLiteratureStore
                             .getState()
@@ -308,11 +319,20 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue, selected
             }
         }
     } catch (error) {
-        console.error('🚨 [API 요청 중 오류 발생]: ', error.message)
+        if (error.name === 'AbortError') {
+            console.log('스트리밍이 중단되었습니다.')
+            useRetrieveClassicLiteratureStore
+                .getState()
+                .appendLiterature('\n생성이 중단되었습니다.')
+        } else {
+            console.error('🚨 [API 요청 중 오류 발생]: ', error.message)
+        }
     } finally {
         console.log('🅰 finally --- retrieveClassicalLiteratureWithVaiv')
         useRetrieveClassicLiteratureStore.getState().updateIsGenerating(false) //isLoading 종료
     }
+
+    return similarRecommendationResult // 결과 반환
 }
 
 /**

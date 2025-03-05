@@ -4,6 +4,9 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
     retrievedLiterature: '', // 현재 생성되고 있는 문학
     retrievedLiteratureTitle: '', // 현재 생성되고 있는 문학의 제목
     isGenerating: false, //loadingbar 처리
+    abortController: null, // AbortController 인스턴스
+    isStopped: false, // 검색종료버튼 처리
+    beforeTextInput: '', // 이전 텍스트 입력값
 
     setRetrievedLiterature: (newLiterature) =>
         set(() => ({
@@ -24,6 +27,21 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
     updateIsGenerating: (isGenerating) =>
         set(() => ({
             isGenerating,
+        })),
+
+    setAbortController: (newAbortController) =>
+        set(() => ({
+            abortController: newAbortController,
+        })),
+
+    setIsStopped: (isStopped) =>
+        set(() => ({
+            isStopped,
+        })),
+
+    setBeforeTextInput: (beforeTextInput) =>
+        set(() => ({
+            beforeTextInput,
         })),
 }))
 

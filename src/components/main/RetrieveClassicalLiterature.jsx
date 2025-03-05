@@ -43,10 +43,46 @@ const RetrieveClassicalLiterature = ({
 
     // 여기서 메시지 목록이 변경되면 컨테이너를 최하단으로 스크롤합니다.
     useEffect(() => {
-        if (messageListRef.current) {
+        if (messageListRef.current && !isGenerating) {
             messageListRef.current.scrollTop = messageListRef.current.scrollHeight
         }
-    }, [messageList, recommandStoryArray])
+    }, [isGenerating])
+
+    // useEffect 부분에 스크롤 감지 로직 추가
+    useEffect(() => {
+        // 스크롤 감지 및 타이머 설정
+        const messageList = messageListRef.current
+        let scrollTimer
+
+        const handleScroll = () => {
+            if (messageList) {
+                messageList.classList.add('scrolling')
+
+                // 이전 타이머 취소
+                clearTimeout(scrollTimer)
+
+                // 2초 후에 scrolling 클래스 제거
+                scrollTimer = setTimeout(() => {
+                    messageList.classList.remove('scrolling')
+                }, 2000) // 2초 동안 스크롤이 없으면 스크롤바 숨김
+            }
+        }
+
+        if (messageList) {
+            messageList.addEventListener('scroll', handleScroll)
+
+            // 초기에는 스크롤바 숨기기
+            messageList.classList.remove('scrolling')
+        }
+
+        // 컴포넌트 언마운트 시 이벤트 리스너 제거
+        return () => {
+            if (messageList) {
+                messageList.removeEventListener('scroll', handleScroll)
+                clearTimeout(scrollTimer)
+            }
+        }
+    }, [])
 
     const renderTags = useCallback((tags) => {
         if (!tags || Object.keys(tags).length === 0) return null
@@ -66,7 +102,7 @@ const RetrieveClassicalLiterature = ({
     return (
         <div className='fixed top-16 bottom-44 w-full mx-auto p-4'>
             <div
-                className='message-list space-y-4 overflow-y-auto h-full w-full'
+                className='message-list space-y-4 overflow-y-auto h-full w-full custom-scrollbar'
                 ref={messageListRef}
                 style={{ scrollBehavior: 'smooth' }}
             >
