@@ -26,13 +26,13 @@ export const retrieveChatHistoryList = async ({ user_id }) => {
 }
 
 /**
- * @description 채팅 히스토리 한 개 삭제
+ * @description 쓰레기 삭제
  * @param {Number} thread_id
  */
-export const deleteChatHistory = async (chat) => {
+export const deleteThread = async (chat) => {
     try {
         const thread_id = chat.thread_id
-        const response = await fetch(`${Config.baseURL}/api/deleteChatHistory`, {
+        const response = await fetch(`${Config.baseURL}/api/deleteThread`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
