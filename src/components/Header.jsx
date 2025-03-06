@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import MobileSideMenu from './sidemenu/MobileSideMenu'
 import { BsLayoutTextSidebarReverse } from 'react-icons/bs'
 import { FaRegEdit } from 'react-icons/fa'
@@ -53,6 +53,7 @@ const Header = ({ onHistorySelect }) => {
                 onClose={closeMenu}
                 historyList={historyList}
                 onSelectHistory={handleSelectHistory}
+                setHistoryList={setHistoryList}
             />
             <header className='fixed top-0 left-0 w-full h-12 bg-white shadow-md px-4 py-3 z-40 flex'>
                 <div className='relative items-center justify-center w-full flex'>
