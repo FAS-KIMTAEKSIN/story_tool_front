@@ -30,6 +30,11 @@ export const retrieveChatHistoryList = async ({ user_id }) => {
  * @param {Number} thread_id
  */
 export const deleteThread = async (chat) => {
+    if (!chat?.thread_id) {
+        console.error('❌ 쓰레드 아이디가 없습니다.')
+        return
+    }
+
     try {
         const thread_id = chat.thread_id
         const response = await fetch(`${Config.baseURL}/api/deleteThread`, {
