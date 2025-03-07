@@ -342,6 +342,8 @@ const MobileMain = ({ historyData }) => {
                 const newSelectedItems = tags ? tags : JSON.parse(JSON.stringify(selectedItems))
                 setCurrentTags(newSelectedItems)
 
+                setInputValue('') // 입력값 초기화
+
                 // 고전문학 데이터 생성 요청 (API 호출)
                 const result = await retrieveClassicalLiteratureWithVaiv({
                     inputValue: text,
@@ -354,7 +356,6 @@ const MobileMain = ({ historyData }) => {
                 console.error('🚨 [오류 발생] 스토리 생성 중 오류:', error)
                 alert('스토리 생성 중 오류가 발생했습니다.')
             } finally {
-                setInputValue('') // 입력값 초기화
                 setCurrentTags({}) // 태그 초기화
             }
         },
@@ -507,13 +508,14 @@ const MobileMain = ({ historyData }) => {
                                         setInputValue(e.target.value)
                                         handleTextareaResize(e)
                                     }}
-                                    onKeyUp={(e) => {
-                                        if (e.key === 'Enter') {
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault() // 기본 동작(줄바꿈) 방지
                                             handleSubmit()
-                                            e.preventDefault()
                                         }
                                     }}
                                     rows={3} // 기본 높이 설정 (자동 조절 가능)
+                                    disabled={isLoading}
                                 />
                             </div>
 
