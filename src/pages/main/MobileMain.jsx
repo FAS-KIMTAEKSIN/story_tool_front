@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
     retrieveAnalize,
     retrieveClassicalLiteratureWithVaiv,
+    cancelGeneration,
 } from '../../api/retrieveClassicalLiterature'
 import { IoMdSend } from 'react-icons/io'
-import { FaRegStopCircle } from 'react-icons/fa'
+import { FaStop } from 'react-icons/fa'
+
 import TagFilters from '../../components/main/TagFilters'
 import RetrieveClassicalLiterature from '../../components/main/RetrieveClassicalLiterature'
 import ResponseRecommendationDetail from '../../components/modals/ResponseRecommendationDetail'
@@ -456,10 +458,12 @@ const MobileMain = ({ historyData }) => {
     }
 
     // 검색종료버튼
-    const handleStop = useCallback(() => {
+    const handleStop = useCallback(async () => {
         const store = useRetrieveClassicLiteratureStore.getState()
         store.abortController.abort()
         store.setIsStopped(true)
+
+        await cancelGeneration()
     }, [])
 
     return (
@@ -524,10 +528,11 @@ const MobileMain = ({ historyData }) => {
                                 {/* stop 버튼 */}
                                 {isLoading ? (
                                     <button
-                                        className='flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none'
+                                        className='flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none relative'
                                         onClick={handleStop}
                                     >
-                                        <FaRegStopCircle className='text-lg' />
+                                        <div className='absolute inset-0 rounded-full border-2 border-gray-300 border-t-black animate-spin w-8 h-8 m-auto'></div>
+                                        <FaStop className='text-xs relative z-10' />
                                     </button>
                                 ) : (
                                     <>
