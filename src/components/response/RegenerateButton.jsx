@@ -39,9 +39,9 @@ const RegenerateButton = ({
     return (
         <button
             onClick={handleRegenerate}
-            className='fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-red-400 text-white px-6 py-3 rounded-full hover:bg-red-600 transition-all shadow-lg hover:shadow-xl hover:cursor-pointer'
+            className='w-fit fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-red-400 text-white px-6 py-3 rounded-full hover:bg-red-600 transition-all shadow-lg hover:shadow-xl hover:cursor-pointer'
         >
-            <span className='text-sm block'>생성 중 중간에 멈추셨어요.</span>
+            <span className='text-xs block'>생성 중 중간에 멈추셨어요.</span>
             <span className='text-normal font-bold'>재생성하기</span>
         </button>
     )
