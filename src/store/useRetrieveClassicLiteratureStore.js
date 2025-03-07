@@ -7,6 +7,8 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
     abortController: null, // AbortController 인스턴스
     isStopped: false, // 검색종료버튼 처리
     beforeTextInput: '', // 이전 텍스트 입력값
+    conversationId: '', // 문학 생성 중 저장된 conversationId
+    threadId: '', // 문학 생성 중 저장된 threadId
 
     setRetrievedLiterature: (newLiterature) =>
         set(() => ({
@@ -42,6 +44,16 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
     setBeforeTextInput: (beforeTextInput) =>
         set(() => ({
             beforeTextInput,
+        })),
+
+    setConversationId: (conversationId) =>
+        set(() => ({
+            conversationId,
+        })),
+
+    setThreadId: (threadId) =>
+        set(() => ({
+            threadId,
         })),
 }))
 

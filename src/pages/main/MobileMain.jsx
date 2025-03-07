@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
     retrieveAnalize,
     retrieveClassicalLiteratureWithVaiv,
+    cancelGeneration,
 } from '../../api/retrieveClassicalLiterature'
 import { IoMdSend } from 'react-icons/io'
-import { FaRegStopCircle } from 'react-icons/fa'
+import { FaStop } from 'react-icons/fa'
+
 import TagFilters from '../../components/main/TagFilters'
 import RetrieveClassicalLiterature from '../../components/main/RetrieveClassicalLiterature'
 import ResponseRecommendationDetail from '../../components/modals/ResponseRecommendationDetail'
@@ -342,6 +344,8 @@ const MobileMain = ({ historyData }) => {
                 const newSelectedItems = tags ? tags : JSON.parse(JSON.stringify(selectedItems))
                 setCurrentTags(newSelectedItems)
 
+                setInputValue('') // 입력값 초기화
+
                 // 고전문학 데이터 생성 요청 (API 호출)
                 const result = await retrieveClassicalLiteratureWithVaiv({
                     inputValue: text,
@@ -354,7 +358,6 @@ const MobileMain = ({ historyData }) => {
                 console.error('🚨 [오류 발생] 스토리 생성 중 오류:', error)
                 alert('스토리 생성 중 오류가 발생했습니다.')
             } finally {
-                setInputValue('') // 입력값 초기화
                 setCurrentTags({}) // 태그 초기화
             }
         },
@@ -455,10 +458,13 @@ const MobileMain = ({ historyData }) => {
     }
 
     // 검색종료버튼
-    const handleStop = useCallback(() => {
+    const handleStop = useCallback(async () => {
         const store = useRetrieveClassicLiteratureStore.getState()
         store.abortController.abort()
         store.setIsStopped(true)
+
+        const similarAndRecommandData = await cancelGeneration()
+        setAdditionalData(similarAndRecommandData)
     }, [])
 
     return (
@@ -507,13 +513,14 @@ const MobileMain = ({ historyData }) => {
                                         setInputValue(e.target.value)
                                         handleTextareaResize(e)
                                     }}
-                                    onKeyUp={(e) => {
-                                        if (e.key === 'Enter') {
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault() // 기본 동작(줄바꿈) 방지
                                             handleSubmit()
-                                            e.preventDefault()
                                         }
                                     }}
                                     rows={3} // 기본 높이 설정 (자동 조절 가능)
+                                    disabled={isLoading}
                                 />
                             </div>
 
@@ -522,10 +529,11 @@ const MobileMain = ({ historyData }) => {
                                 {/* stop 버튼 */}
                                 {isLoading ? (
                                     <button
-                                        className='flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none'
+                                        className='flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none relative'
                                         onClick={handleStop}
                                     >
-                                        <FaRegStopCircle className='text-lg' />
+                                        <div className='absolute inset-0 rounded-full border-2 border-gray-300 border-t-black animate-spin w-8 h-8 m-auto'></div>
+                                        <FaStop className='text-xs relative z-10' />
                                     </button>
                                 ) : (
                                     <>

@@ -2,6 +2,8 @@ import React, { useMemo } from 'react'
 import { deleteThread } from '../../api/history'
 import { BiMessageSquareDetail } from 'react-icons/bi'
 import { RiDeleteBin6Line } from 'react-icons/ri'
+import { toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const HistoryList = ({ historyList, onItemClick, setHistoryList }) => {
     // 중복 제거 로직을 useMemo로 최적화
@@ -38,6 +40,17 @@ const HistoryList = ({ historyList, onItemClick, setHistoryList }) => {
         return sortGroups(groups)
     }, [uniqueHistoryList])
 
+    // toast 옵션 객체 추가
+    const toastOptionObj = {
+        position: 'bottom-center',
+        autoClose: 1500,
+        hideProgressBar: true,
+        closeOnClick: true,
+        pauseOnHover: false,
+        theme: 'dark',
+        closeButton: false,
+    }
+
     // thread 삭제
     const handleDeleteThread = async (chat, e) => {
         e.stopPropagation() // 이벤트 버블링 방지
@@ -48,11 +61,14 @@ const HistoryList = ({ historyList, onItemClick, setHistoryList }) => {
             if (response.status === 200) {
                 console.log('thread 삭제 성공')
                 setHistoryList(historyList.filter((item) => item.thread_id !== chat.thread_id))
+                toast('대화가 삭제되었습니다.', toastOptionObj)
             } else {
                 console.log('thread 삭제 실패')
+                toast('대화 삭제에 실패했습니다.', toastOptionObj)
             }
         } catch (error) {
             console.error('thread 삭제 중 오류 발생:', error)
+            toast('대화 삭제 중 오류가 발생했습니다.', toastOptionObj)
         }
     }
 

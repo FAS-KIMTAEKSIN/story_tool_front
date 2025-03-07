@@ -277,10 +277,19 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', sel
                     //cleanData JSONparsing
                     let cleanData = parseNestedJSON(afterData)
 
-                    if (cleanData?.thread_id && cleanData?.conversation_id) {
+                    if (cleanData?.success && cleanData?.thread_id && cleanData?.conversation_id) {
                         console.log('DATA is LAST. ------')
                         similarRecommendationResult = await callSimilarRecommendation(cleanData)
                         break // while문 빠져나가기
+                    } else if (cleanData?.thread_id && cleanData?.conversation_id) {
+                        //threadId, conversationId 저장, 정지시 사용
+                        console.log('save threadId, conversationId', cleanData)
+                        useRetrieveClassicLiteratureStore
+                            .getState()
+                            .setConversationId(cleanData.conversation_id)
+                        useRetrieveClassicLiteratureStore
+                            .getState()
+                            .setThreadId(cleanData.thread_id)
                     }
 
                     //1. 정상케이스
@@ -406,6 +415,48 @@ export const retrieveSimilarRecommendation = async ({
     } else {
         throw new Error('유사한글, 추천글 조회 에러: result 값이 없음.')
     }
+}
+
+/**
+ * @description 문학 생성 중단
+ * @returns {Object}
+ */
+export const cancelGeneration = async () => {
+    const store = useRetrieveClassicLiteratureStore.getState()
+
+    const threadId = store.threadId
+    const conversationId = store.conversationId
+
+    console.log('cancelGeneration', threadId, conversationId)
+
+    const requestBody = {
+        thread_id: threadId,
+        conversation_id: conversationId,
+    }
+
+    const response = await fetch(`${Config.baseURL}/api/cancelGeneration`, {
+        method: 'POST',
+        headers: Config.headers,
+        body: JSON.stringify(requestBody),
+    })
+    console.log(response)
+
+    if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`❌ [API Error (${response.status})]:`, errorText)
+        throw new Error(`API Error (${response.status}): ${errorText}`)
+    }
+
+    const jsonResponse = await response.json()
+    console.log('✅ [API 응답 데이터]:', jsonResponse)
+
+    //retrieveSimilarRecommendation 호출
+    return await retrieveSimilarRecommendation({
+        inputValue: jsonResponse?.user_input ?? '',
+        selectedItems: jsonResponse?.tags ?? {},
+        threadId: threadId,
+        conversationId: conversationId,
+    })
 }
 
 // ""와 줄바꿈을 제외한 모든 내용 화면에 정상적으로 노출 될 수 있도록 처리
