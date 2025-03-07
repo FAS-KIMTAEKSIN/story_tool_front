@@ -463,7 +463,8 @@ const MobileMain = ({ historyData }) => {
         store.abortController.abort()
         store.setIsStopped(true)
 
-        await cancelGeneration()
+        const similarAndRecommandData = await cancelGeneration()
+        setAdditionalData(similarAndRecommandData)
     }, [])
 
     return (

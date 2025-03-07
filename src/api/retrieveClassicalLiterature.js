@@ -449,6 +449,14 @@ export const cancelGeneration = async () => {
 
     const jsonResponse = await response.json()
     console.log('✅ [API 응답 데이터]:', jsonResponse)
+
+    //retrieveSimilarRecommendation 호출
+    return await retrieveSimilarRecommendation({
+        inputValue: jsonResponse?.user_input ?? '',
+        selectedItems: jsonResponse?.tags ?? {},
+        threadId: threadId,
+        conversationId: conversationId,
+    })
 }
 
 // ""와 줄바꿈을 제외한 모든 내용 화면에 정상적으로 노출 될 수 있도록 처리
