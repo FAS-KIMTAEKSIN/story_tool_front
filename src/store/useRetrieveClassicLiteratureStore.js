@@ -9,6 +9,7 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
     beforeTextInput: '', // 이전 텍스트 입력값
     conversationId: '', // 문학 생성 중 저장된 conversationId
     threadId: '', // 문학 생성 중 저장된 threadId
+    isLoadingSimilar: false,
 
     setRetrievedLiterature: (newLiterature) =>
         set(() => ({
@@ -55,6 +56,8 @@ const useRetrieveClassicLiteratureStore = create((set) => ({
         set(() => ({
             threadId,
         })),
+
+    setIsLoadingSimilar: (value) => set({ isLoadingSimilar: value }),
 }))
 
 export default useRetrieveClassicLiteratureStore

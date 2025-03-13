@@ -4,6 +4,7 @@ import ResponseRecommendations from './ResponseRecommendations'
 import ChatOptions from './../chatOptions/ChatOptions'
 import ResponseSimilarStory from '../response/ResponseSimilarStory'
 import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
+import GenerateChatLoadingIndicator from '../chatOptions/GenerateChatLoadingIndicator'
 
 const RetrieveClassicalLiterature = ({
     messageList,
@@ -13,6 +14,7 @@ const RetrieveClassicalLiterature = ({
     requestNewRecommandStory,
     updateSelectedSimilarStory,
     isLoading,
+    isLoadingSimilar,
 }) => {
     const isGenerating = useRetrieveClassicLiteratureStore.getState().isGenerating //isLoading
     const messageListRef = useRef(null)
@@ -100,7 +102,7 @@ const RetrieveClassicalLiterature = ({
     }, [])
 
     return (
-        <div className='fixed top-16 bottom-44 w-full mx-auto p-4'>
+        <div className='fixed top-16 bottom-44 w-full max-w-[740px] mx-auto p-4'>
             <div
                 className='message-list space-y-4 overflow-y-auto h-full w-full custom-scrollbar'
                 ref={messageListRef}
@@ -160,12 +162,20 @@ const RetrieveClassicalLiterature = ({
                             <div className='transition-opacity duration-300 ease-in-out mt-4'>
                                 {/* 유사한 고전 원문 영역 */}
                                 {similarClassicalArray.length > 0 &&
-                                    similarClassicalArray[index]?.type === 'ai' && (
-                                        <ResponseSimilarStory
-                                            similarClassicalArray={similarClassicalArray[index]}
-                                            updateSelectedSimilarStory={updateSelectedSimilarStory}
-                                        />
-                                    )}
+                                similarClassicalArray[index]?.type === 'ai' ? (
+                                    <ResponseSimilarStory
+                                        similarClassicalArray={similarClassicalArray[index]}
+                                        updateSelectedSimilarStory={updateSelectedSimilarStory}
+                                    />
+                                ) : (
+                                    // 마지막 AI 메시지인데 유사 콘텐츠 로딩 중인 경우 로딩 인디케이터 표시
+                                    isLoadingSimilar &&
+                                    lastAiMessageId === message.id && (
+                                        <div className='mt-2 pl-2'>
+                                            <GenerateChatLoadingIndicator />
+                                        </div>
+                                    )
+                                )}
 
                                 {/* 추천 영역 */}
                                 {!isGenerating && lastAiMessageId === message.id && (
@@ -179,6 +189,11 @@ const RetrieveClassicalLiterature = ({
                         )}
                     </div>
                 ))}
+
+                {/* 로딩 인디케이터 추가 - 마지막 메시지가 사용자 메시지이고 isGenerating이 true일 때 표시 */}
+                {messageList.length > 0 &&
+                    messageList[messageList.length - 1].type === 'user' &&
+                    isGenerating && <GenerateChatLoadingIndicator />}
             </div>
         </div>
     )

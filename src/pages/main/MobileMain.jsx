@@ -44,6 +44,7 @@ const MobileMain = ({ historyData }) => {
     )
     const isLoading = useRetrieveClassicLiteratureStore((state) => state.isGenerating)
     const isStopped = useRetrieveClassicLiteratureStore((state) => state.isStopped)
+    const isLoadingSimilar = useRetrieveClassicLiteratureStore((state) => state.isLoadingSimilar)
 
     // 초기화: localStorage 정리
     useEffect(() => {
@@ -488,9 +489,10 @@ const MobileMain = ({ historyData }) => {
                 requestNewRecommandStory={requestNewStory}
                 updateSelectedSimilarStory={updateSelectedSimilarStory}
                 isLoading={isLoading}
+                isLoadingSimilar={isLoadingSimilar} // 로딩 상태 전달
             />
             {/* 하단 입력부 */}
-            <div className='w-full max-h-56 fixed bottom-2 p-2 flex space-x-2'>
+            <div className='w-full max-w-[740px] mx-auto max-h-56 fixed bottom-2 p-2 flex space-x-2'>
                 {/* 정지: 재생성 버튼 // 정상: 텍스트 입력 영역 */}
                 {isStopped ? (
                     <RegenerateButton
