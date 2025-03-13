@@ -4,6 +4,7 @@ import ResponseRecommendations from './ResponseRecommendations'
 import ChatOptions from './../chatOptions/ChatOptions'
 import ResponseSimilarStory from '../response/ResponseSimilarStory'
 import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
+import GenerateChatLoadingIndicator from '../chatOptions/GenerateChatLoadingIndicator'
 
 const RetrieveClassicalLiterature = ({
     messageList,
@@ -179,6 +180,11 @@ const RetrieveClassicalLiterature = ({
                         )}
                     </div>
                 ))}
+
+                {/* 로딩 인디케이터 추가 - 마지막 메시지가 사용자 메시지이고 isGenerating이 true일 때 표시 */}
+                {messageList.length > 0 &&
+                    messageList[messageList.length - 1].type === 'user' &&
+                    isGenerating && <GenerateChatLoadingIndicator />}
             </div>
         </div>
     )
