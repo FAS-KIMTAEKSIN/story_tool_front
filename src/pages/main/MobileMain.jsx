@@ -490,7 +490,7 @@ const MobileMain = ({ historyData }) => {
                 isLoading={isLoading}
             />
             {/* 하단 입력부 */}
-            <div className='w-full max-h-56 fixed bottom-2 p-2 flex space-x-2'>
+            <div className='w-full max-w-[740px] mx-auto max-h-56 fixed bottom-2 p-2 flex space-x-2'>
                 {/* 정지: 재생성 버튼 // 정상: 텍스트 입력 영역 */}
                 {isStopped ? (
                     <RegenerateButton

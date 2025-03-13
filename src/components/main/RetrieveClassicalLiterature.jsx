@@ -100,7 +100,7 @@ const RetrieveClassicalLiterature = ({
     }, [])
 
     return (
-        <div className='fixed top-16 bottom-44 w-full mx-auto p-4'>
+        <div className='fixed top-16 bottom-44 w-full max-w-[740px] mx-auto p-4'>
             <div
                 className='message-list space-y-4 overflow-y-auto h-full w-full custom-scrollbar'
                 ref={messageListRef}
