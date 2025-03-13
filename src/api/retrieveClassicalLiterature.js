@@ -130,7 +130,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', sel
         useRetrieveClassicLiteratureStore.getState().setIsLoadingSimilar(true)
 
         //title 에서 특수문자를 제거한 값을 입력
-        const createdTitle = cleanData?.result?.created_title ?? ''
+        const createdTitle = cleanData?.created_title ?? ''
         const parsedTitle = createdTitle.replace(/[^a-zA-Z0-9ㄱ-ㅎ가-힣\s]/g, '')
 
         //title 값 세팅
@@ -289,7 +289,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', sel
 
                     if (cleanData?.success && cleanData?.thread_id && cleanData?.conversation_id) {
                         console.log('DATA is LAST. ------')
-                        similarRecommendationResult = await callSimilarRecommendation(cleanData)
+                        // similarRecommendationResult = await callSimilarRecommendation(cleanData)
                         break // while문 빠져나가기
                     } else if (cleanData?.thread_id && cleanData?.conversation_id) {
                         //threadId, conversationId 저장, 정지시 사용
@@ -328,6 +328,7 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', sel
                                 '✅ 제목과 컨텐츠 내용은 다음 데이터에서 가져옵니다.\n',
                                 cleanData,
                             )
+                            similarRecommendationResult = await callSimilarRecommendation(cleanData)
                         } else {
                             console.info('❌ [REAL Exception]\n', cleanData)
                         }
