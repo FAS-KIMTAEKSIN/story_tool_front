@@ -126,6 +126,9 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', sel
     const callSimilarRecommendation = async (cleanData) => {
         console.log('callSimilarRecommendation \n', cleanData)
 
+        // 유사 콘텐츠 로딩 상태 시작
+        useRetrieveClassicLiteratureStore.getState().setIsLoadingSimilar(true)
+
         //title 에서 특수문자를 제거한 값을 입력
         const createdTitle = cleanData?.result?.created_title ?? ''
         const parsedTitle = createdTitle.replace(/[^a-zA-Z0-9ㄱ-ㅎ가-힣\s]/g, '')
@@ -157,9 +160,16 @@ export const retrieveClassicalLiteratureWithVaiv = async ({ inputValue = '', sel
             conversationId: String(newConversationId),
         }
         console.log(`retrieveSimilarRecommendation_param: ${param}`)
-        return await retrieveSimilarRecommendation({
-            ...param,
-        })
+
+        try {
+            const result = await retrieveSimilarRecommendation({
+                ...param,
+            })
+            return result
+        } finally {
+            // 유사 콘텐츠 로딩 상태 종료
+            useRetrieveClassicLiteratureStore.getState().setIsLoadingSimilar(false)
+        }
     }
 
     try {

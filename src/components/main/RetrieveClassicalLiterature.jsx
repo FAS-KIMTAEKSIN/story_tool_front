@@ -14,6 +14,7 @@ const RetrieveClassicalLiterature = ({
     requestNewRecommandStory,
     updateSelectedSimilarStory,
     isLoading,
+    isLoadingSimilar,
 }) => {
     const isGenerating = useRetrieveClassicLiteratureStore.getState().isGenerating //isLoading
     const messageListRef = useRef(null)
@@ -161,12 +162,20 @@ const RetrieveClassicalLiterature = ({
                             <div className='transition-opacity duration-300 ease-in-out mt-4'>
                                 {/* 유사한 고전 원문 영역 */}
                                 {similarClassicalArray.length > 0 &&
-                                    similarClassicalArray[index]?.type === 'ai' && (
-                                        <ResponseSimilarStory
-                                            similarClassicalArray={similarClassicalArray[index]}
-                                            updateSelectedSimilarStory={updateSelectedSimilarStory}
-                                        />
-                                    )}
+                                similarClassicalArray[index]?.type === 'ai' ? (
+                                    <ResponseSimilarStory
+                                        similarClassicalArray={similarClassicalArray[index]}
+                                        updateSelectedSimilarStory={updateSelectedSimilarStory}
+                                    />
+                                ) : (
+                                    // 마지막 AI 메시지인데 유사 콘텐츠 로딩 중인 경우 로딩 인디케이터 표시
+                                    isLoadingSimilar &&
+                                    lastAiMessageId === message.id && (
+                                        <div className='mt-2 pl-2'>
+                                            <GenerateChatLoadingIndicator />
+                                        </div>
+                                    )
+                                )}
 
                                 {/* 추천 영역 */}
                                 {!isGenerating && lastAiMessageId === message.id && (
