@@ -6,6 +6,7 @@ import {
 } from '../../api/retrieveClassicalLiterature'
 import { IoMdSend } from 'react-icons/io'
 import { FaStop } from 'react-icons/fa'
+import { MdDragIndicator } from 'react-icons/md'
 
 import TagFilters from '../../components/main/TagFilters'
 import RetrieveClassicalLiterature from '../../components/main/RetrieveClassicalLiterature'
@@ -526,8 +527,8 @@ const MobileMain = ({ historyData, isSidebarOpen }) => {
                                     ref={inputValueRef}
                                     className={`w-full h-full border-none focus:outline-none resize-none overflow-y-auto max-h-28 p-2 ${
                                         isDarkMode
-                                            ? 'bg-transparent text-gray-200'
-                                            : 'bg-transparent text-black'
+                                            ? 'bg-transparent text-gray-200 placeholder-gray-500'
+                                            : 'bg-transparent text-black placeholder-gray-400'
                                     }`}
                                     placeholder='예) 귀신이 소년을 괴롭혀서 소년이 울어버리는 이야기'
                                     value={inputValue}
@@ -613,7 +614,7 @@ const MobileMain = ({ historyData, isSidebarOpen }) => {
                                     } rounded-md transition-colors duration-300`}
                                     onClick={handleIsDetailVisible}
                                 >
-                                    <img src={FillterIcon} alt='Filter' className='w-5 h-5' />
+                                    <MdDragIndicator className='w-5 h-5' />
                                 </button>
                             </div>
                         </div>
@@ -626,7 +627,7 @@ const MobileMain = ({ historyData, isSidebarOpen }) => {
                                             key={`${key}-${item}-${index}`}
                                             className={`px-2 py-1 text-xs rounded-full focus:outline-none ${
                                                 isDarkMode
-                                                    ? 'text-gray-200 bg-gray-700 hover:bg-gray-600'
+                                                    ? 'text-gray-200 border border-gray-200 hover:bg-gray-200 hover:text-gray-800'
                                                     : 'text-gray-500 bg-gray-200 hover:bg-gray-300'
                                             }`}
                                             onClick={() => handleDeleteTag(key, item)}
@@ -647,6 +648,7 @@ const MobileMain = ({ historyData, isSidebarOpen }) => {
                     setSelectedItems={setSelectedItems}
                     isDetailVisible={isDetailVisible}
                     setIsDetailVisible={handleIsDetailVisible} // handleIsDetailVisible 함수 전달
+                    isDarkMode={isDarkMode}
                 />
             )}
             {/* detail 바텀시트 */}

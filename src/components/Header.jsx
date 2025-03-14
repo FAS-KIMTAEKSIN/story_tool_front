@@ -82,22 +82,30 @@ const Header = ({ onHistorySelect, isSidebarOpen, setIsSidebarOpen }) => {
                         <BsLayoutTextSidebarReverse />
                     </button>
                     <h1
-                        className={`inline-block text-lg font-semibold ${
+                        className={`inline-block text-lg font-semibold hover:cursor-pointer ${
                             isDarkMode ? 'text-white' : 'text-gray-800'
                         }`}
+                        title='새 쓰레드를 생성합니다.'
                         onClick={createThread}
                     >
                         고전 스토리 생성
                     </h1>
 
                     <button
-                        className='absolute right-12 text-xl block p-3 rounded'
+                        className='absolute right-12 text-xl block p-3 rounded hover:cursor-pointer'
                         onClick={toggleTheme}
+                        title={`클릭하시면 ${
+                            isDarkMode ? '라이트 모드' : '다크 모드'
+                        }로 변경됩니다`}
                     >
                         {isDarkMode ? <FaSun /> : <FaMoon />}
                     </button>
 
-                    <button className='absolute right-2 text-xl block' onClick={createThread}>
+                    <button
+                        className='absolute right-2 text-xl block hover:cursor-pointer'
+                        onClick={createThread}
+                        title='새로운 쓰레드를 생성합니다.'
+                    >
                         <FaRegEdit />
                     </button>
                 </div>
