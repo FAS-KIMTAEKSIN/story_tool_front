@@ -5,9 +5,12 @@ import { FaRegEdit, FaRegUserCircle } from 'react-icons/fa'
 import Config from '../../util/config'
 import ChatHistorySearch from './ChatHistorySearch'
 import HistoryList from './HistoryList'
+import { IconButtonStyle } from '../../assets/style'
+import { useTheme } from '../../contexts/ThemeContext'
 
 const MobileSideMenu = ({ isOpen, onClose, historyList, onSelectHistory }) => {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const { isDarkMode } = useTheme()
 
     /**
      * @description 특정 히스토리를 클릭하면 해당 대화 내용을 가져옴.
@@ -70,39 +73,66 @@ const MobileSideMenu = ({ isOpen, onClose, historyList, onSelectHistory }) => {
 
             {/* 사이드 메뉴 */}
             <div
-                className={`fixed top-0 left-0 h-full w-80 bg-white shadow-lg transform ${
+                className={`fixed top-0 left-0 h-full w-80 shadow-lg transform ${
                     isOpen ? 'translate-x-0' : '-translate-x-full'
-                } transition-transform duration-300 ease-in-out z-50`}
+                } transition-transform duration-300 ease-in-out z-50 ${
+                    isDarkMode ? 'text-gray-200' : ''
+                }`}
+                style={isDarkMode ? { backgroundColor: '#3D3D3B' } : { backgroundColor: 'white' }}
             >
-                <div className='h-full bg-[#f6f6f6] flex flex-col justify-between'>
+                <div
+                    className={`h-full flex flex-col justify-between`}
+                    style={
+                        isDarkMode ? { backgroundColor: '#3D3D3B' } : { backgroundColor: '#f6f6f6' }
+                    }
+                >
                     {/* 상단 버튼 영역 */}
                     <div className='flex justify-between items-center w-full px-6 pt-4 pb-3'>
-                        <button
-                            onClick={onClose}
-                            className='text-xl hover:cursor-pointer hover:text-gray-200 hover:bg-gray-600 p-3 rounded'
-                        >
+                        <button onClick={onClose} className={IconButtonStyle}>
                             <BsLayoutTextSidebarReverse />
                         </button>
-                        <div className='flex justify-between items-center space-x-4'>
-                            <IoSearchOutline
-                                className='text-2xl cursor-pointer'
-                                onClick={openSearch}
-                            />
-                            <button className='text-2xl' onClick={createThread}>
+                        <div className='flex justify-between items-center'>
+                            <button onClick={openSearch} className={IconButtonStyle}>
+                                <IoSearchOutline />
+                            </button>
+                            <button onClick={createThread} className={IconButtonStyle}>
                                 <FaRegEdit />
                             </button>
                         </div>
                     </div>
 
-                    {/* 그룹화된 히스토리 리스트 */}
-                    <HistoryList historyList={historyList} onItemClick={handleHistoryClick} />
+                    {/* 그룹화된 히스토리 리스트 - HistoryList 컴포넌트에 isDarkMode 전달 */}
+                    <HistoryList
+                        historyList={historyList}
+                        onItemClick={handleHistoryClick}
+                        isDarkMode={isDarkMode}
+                    />
 
                     {/* 하단 유저 정보 */}
-                    <div className='bg-[#f6f6f6] p-3 rounded-lg flex items-center space-x-3'>
+                    <div
+                        className={`p-3 rounded-lg flex items-center space-x-3`}
+                        style={
+                            isDarkMode
+                                ? { backgroundColor: '#3D3D3B' }
+                                : { backgroundColor: '#f6f6f6' }
+                        }
+                    >
                         <FaRegUserCircle className='text-2xl' />
                         <div>
-                            <p className='text-sm font-semibold text-gray-900'>홍길동</p>
-                            <p className='text-xs text-gray-600'>gildong@example.com</p>
+                            <p
+                                className={`text-sm font-semibold ${
+                                    isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                                }`}
+                            >
+                                홍길동
+                            </p>
+                            <p
+                                className={`text-xs ${
+                                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}
+                            >
+                                gildong@example.com
+                            </p>
                         </div>
                     </div>
                 </div>

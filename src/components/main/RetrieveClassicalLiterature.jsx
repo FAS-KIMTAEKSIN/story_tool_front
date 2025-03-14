@@ -5,6 +5,7 @@ import ChatOptions from './../chatOptions/ChatOptions'
 import ResponseSimilarStory from '../response/ResponseSimilarStory'
 import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
 import GenerateChatLoadingIndicator from '../chatOptions/GenerateChatLoadingIndicator'
+import { useTheme } from '../../contexts/ThemeContext'
 
 const RetrieveClassicalLiterature = ({
     messageList,
@@ -16,6 +17,7 @@ const RetrieveClassicalLiterature = ({
     isLoading,
     isLoadingSimilar,
 }) => {
+    const { isDarkMode } = useTheme()
     const isGenerating = useRetrieveClassicLiteratureStore.getState().isGenerating //isLoading
     const messageListRef = useRef(null)
     const [lastAiMessageId, setLastAiMessageId] = useState(null)
@@ -104,7 +106,7 @@ const RetrieveClassicalLiterature = ({
     return (
         <div className='fixed top-16 bottom-44 w-full max-w-[740px] mx-auto p-4'>
             <div
-                className='message-list space-y-4 overflow-y-auto h-full w-full custom-scrollbar'
+                className={`message-list space-y-4 overflow-y-auto h-full w-full custom-scrollbar`}
                 ref={messageListRef}
                 style={{ scrollBehavior: 'smooth' }}
             >
@@ -112,7 +114,15 @@ const RetrieveClassicalLiterature = ({
                     <div className='flex-col w-full text-sm rounded' key={`${message.id}-${index}`}>
                         <div
                             className={`flex items-start rounded-lg py-2 px-3 break-words w-fit max-w-[90%] ${
-                                message.type === 'user' ? 'ml-auto' : 'bg-gray-100'
+                                message.type === 'user'
+                                    ? 'ml-auto'
+                                    : isDarkMode
+                                    ? 'text-gray-200 border-gray-200'
+                                    : 'bg-gray-100'
+                            } ${
+                                isDarkMode && message.type !== 'user'
+                                    ? 'border border-gray-200'
+                                    : ''
                             }`}
                         >
                             {message.type === 'user' ? (
@@ -120,7 +130,11 @@ const RetrieveClassicalLiterature = ({
                                     <div className='flex justify-end w-full items-center'>
                                         <div className='flex items-center justify-center pr-2 h-full'>
                                             <button
-                                                className='p-1 text-gray-500 hover:text-gray-700 focus:outline-none'
+                                                className={`p-1 ${
+                                                    isDarkMode
+                                                        ? 'text-gray-300 hover:text-gray-100'
+                                                        : 'text-gray-500 hover:text-gray-700'
+                                                } focus:outline-none`}
                                                 onClick={() =>
                                                     handleEditMessage(message.id, message.text)
                                                 }
@@ -129,13 +143,25 @@ const RetrieveClassicalLiterature = ({
                                                 <LiaEdit className='h-4 w-4' />
                                             </button>
                                         </div>
-                                        <div className='bg-blue-50 text-gray-800 rounded-lg py-2 px-3 break-words border-b-gray-200'>
+                                        <div
+                                            className={`${
+                                                isDarkMode
+                                                    ? 'text-gray-200 border border-gray-200'
+                                                    : 'bg-blue-50 text-gray-800'
+                                            } rounded-lg py-2 px-3 break-words`}
+                                        >
                                             <p>{message.text}</p>
                                             {renderTags(message.tags)}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className='bg-blue-50 text-gray-800 rounded-lg py-2 px-3 break-words border-b-gray-200 ml-auto'>
+                                    <div
+                                        className={`${
+                                            isDarkMode
+                                                ? 'text-gray-200 border border-gray-200'
+                                                : 'bg-blue-50 text-gray-800'
+                                        } rounded-lg py-2 px-3 break-words ml-auto`}
+                                    >
                                         <p>{message.text}</p>
                                     </div>
                                 )
@@ -143,9 +169,19 @@ const RetrieveClassicalLiterature = ({
                                 <>
                                     <div className='flex-col'>
                                         <h3 className='mb-1'>
-                                            <strong className='text-normal'>{message.title}</strong>
+                                            <strong
+                                                className={`text-normal ${
+                                                    isDarkMode ? 'text-gray-200' : ''
+                                                }`}
+                                            >
+                                                {message.title}
+                                            </strong>
                                         </h3>
-                                        <p className='text-sm mb-2 whitespace-pre-line'>
+                                        <p
+                                            className={`text-sm mb-2 whitespace-pre-line ${
+                                                isDarkMode ? 'text-gray-200' : ''
+                                            }`}
+                                        >
                                             {message.text}
                                         </p>
                                         {renderTags(message.tags)}

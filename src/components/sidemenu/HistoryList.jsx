@@ -5,7 +5,7 @@ import { RiDeleteBin6Line } from 'react-icons/ri'
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-const HistoryList = ({ historyList, onItemClick, setHistoryList }) => {
+const HistoryList = ({ historyList, onItemClick, setHistoryList, isDarkMode }) => {
     // 중복 제거 로직을 useMemo로 최적화
     const uniqueHistoryList = useMemo(() => {
         const seenThreadIds = new Set()
@@ -82,27 +82,43 @@ const HistoryList = ({ historyList, onItemClick, setHistoryList }) => {
     }
 
     return (
-        <div className='mt-4 ml-3 flex-grow overflow-y-auto'>
+        <div className={`flex-1 overflow-y-auto`}>
             {sortedGroups.map((group) => (
-                <React.Fragment key={group.key}>
-                    <div className='px-4 py-2 text-gray-500 text-xs'>{group.key}</div>
-                    {group.items.map((chat, index) => (
-                        <div
-                            key={chat.thread_id || index}
-                            className='cursor-pointer hover:bg-gray-200 p-3 flex items-center justify-between gap-2'
-                            onClick={() => handleItemClick(chat.thread_id)}
-                        >
-                            <BiMessageSquareDetail className='text-base text-gray-600' />
-                            <span className='text-sm flex-1'>{formatTitle(chat.title)}</span>
-                            <button
-                                className='z-[11] h-full p-1 text-gray-600 hover:cursor-pointer rounded hover:bg-gray-400 hover:text-gray-100'
-                                onClick={(e) => handleDeleteThread(chat, e)}
+                <div key={group.key} className='mb-4'>
+                    <h3
+                        className={`text-xs ${
+                            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        } px-4 mb-1`}
+                    >
+                        {group.key}
+                    </h3>
+                    <ul>
+                        {group.items.map((item) => (
+                            <li
+                                key={item.thread_id}
+                                onClick={() => handleItemClick(item.thread_id)}
+                                className={`px-4 py-2 cursor-pointer ${
+                                    isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                                }`}
                             >
-                                <RiDeleteBin6Line className='text-end' />
-                            </button>
-                        </div>
-                    ))}
-                </React.Fragment>
+                                <div
+                                    className={`${
+                                        isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                                    } font-medium`}
+                                >
+                                    {item.title || '제목 없음'}
+                                </div>
+                                <div
+                                    className={`text-xs ${
+                                        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                                    } truncate`}
+                                >
+                                    {item.summary || '내용 없음'}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             ))}
         </div>
     )

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import MobileSideMenu from './sidemenu/MobileSideMenu'
 import { BsLayoutTextSidebarReverse } from 'react-icons/bs'
-import { FaRegEdit } from 'react-icons/fa'
+import { FaRegEdit, FaMoon, FaSun } from 'react-icons/fa'
 import { retrieveChatHistoryList } from '../api/history'
+import { useTheme } from '../contexts/ThemeContext'
 
 const Header = ({ onHistorySelect, isSidebarOpen, setIsSidebarOpen }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [historyList, setHistoryList] = useState([])
+    const { isDarkMode, toggleTheme } = useTheme()
 
     // 사이드메뉴 토글
     const toggleMenu = async () => {
@@ -62,20 +64,39 @@ const Header = ({ onHistorySelect, isSidebarOpen, setIsSidebarOpen }) => {
                 onSelectHistory={handleSelectHistory}
                 setHistoryList={setHistoryList}
             />
-            <header className='fixed top-0 left-0 w-full min-w-[340px] h-12 bg-white shadow-md px-4 py-3 z-40 flex'>
+            <header
+                className={`fixed top-0 left-0 w-full min-w-[340px] h-12 shadow-md px-4 py-3 z-40 flex ${
+                    isDarkMode ? 'text-white' : 'bg-white text-gray-800'
+                }`}
+                style={isDarkMode ? { backgroundColor: '#3D3D3B' } : {}}
+            >
                 <div className='relative items-center justify-center w-full flex'>
                     <button
                         onClick={toggleMenu}
-                        className='absolute left-2 text-xl block hover:cursor-pointer hover:text-gray-200 hover:bg-gray-600 p-3 rounded'
+                        className={`absolute left-2 text-xl block hover:cursor-pointer ${
+                            isDarkMode
+                                ? 'hover:text-gray-300 hover:bg-gray-700'
+                                : 'hover:text-gray-200 hover:bg-gray-600'
+                        } p-3 rounded`}
                     >
                         <BsLayoutTextSidebarReverse />
                     </button>
                     <h1
-                        className='inline-block text-lg font-semibold text-gray-800'
+                        className={`inline-block text-lg font-semibold ${
+                            isDarkMode ? 'text-white' : 'text-gray-800'
+                        }`}
                         onClick={createThread}
                     >
                         고전 스토리 생성
                     </h1>
+
+                    <button
+                        className='absolute right-12 text-xl block p-3 rounded'
+                        onClick={toggleTheme}
+                    >
+                        {isDarkMode ? <FaSun /> : <FaMoon />}
+                    </button>
+
                     <button className='absolute right-2 text-xl block' onClick={createThread}>
                         <FaRegEdit />
                     </button>
