@@ -6,6 +6,7 @@ import {
 } from '../../api/retrieveClassicalLiterature'
 import { IoMdSend } from 'react-icons/io'
 import { FaStop } from 'react-icons/fa'
+import { MdDragIndicator } from 'react-icons/md'
 
 import TagFilters from '../../components/main/TagFilters'
 import RetrieveClassicalLiterature from '../../components/main/RetrieveClassicalLiterature'
@@ -14,13 +15,14 @@ import ResponseRecommendationAnalized from '../../components/modals/ResponseReco
 import FillterIcon from '../../assets/filter.png'
 import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
 import RegenerateButton from '../../components/response/RegenerateButton'
+import { useTheme } from '../../contexts/ThemeContext'
 
 /**
  * @description 메인 화면
  * @param {Object} props
  * - historyData: 히스토리 상세 데이터 (있는 경우 사용)
  */
-const MobileMain = ({ historyData }) => {
+const MobileMain = ({ historyData, isSidebarOpen }) => {
     const inputValueRef = useRef(null)
     const [selectedItems, setSelectedItems] = useState({})
     const [inputValue, setInputValue] = useState('')
@@ -45,6 +47,9 @@ const MobileMain = ({ historyData }) => {
     const isLoading = useRetrieveClassicLiteratureStore((state) => state.isGenerating)
     const isStopped = useRetrieveClassicLiteratureStore((state) => state.isStopped)
     const isLoadingSimilar = useRetrieveClassicLiteratureStore((state) => state.isLoadingSimilar)
+
+    // theme
+    const { isDarkMode } = useTheme()
 
     // 초기화: localStorage 정리
     useEffect(() => {
@@ -469,7 +474,12 @@ const MobileMain = ({ historyData }) => {
     }, [])
 
     return (
-        <>
+        <div
+            className={`w-full ${isSidebarOpen ? 'md:w-[calc(100%-200px)]' : ''} ${
+                isDarkMode ? 'text-white' : 'bg-white text-black'
+            }`}
+            style={isDarkMode ? { backgroundColor: '#3D3D3B' } : {}}
+        >
             {/* 내용이 없을 때 표시되는 메시지 */}
             {!inputValue.trim() && messageList.length === 0 && (
                 <div className='flex items-center justify-center flex-1 text-center text-gray-500 text-sm italic'>
@@ -481,15 +491,16 @@ const MobileMain = ({ historyData }) => {
             )}
             {/* 대화 내용 */}
             <RetrieveClassicalLiterature
-                messageList={messageList} //메시지 목록
-                handleEditMessage={handleEditMessage} // 수정 버튼 클릭 시 호출될 함수
-                currentTags={currentTags} // 전달
-                similarClassicalArray={similarClassicalArray} // 유사한 고전 원문
-                recommandStoryArray={recommandStoryArray} // 이런 이야기를 생성해보세요
+                messageList={messageList}
+                handleEditMessage={handleEditMessage}
+                currentTags={currentTags}
+                similarClassicalArray={similarClassicalArray}
+                recommandStoryArray={recommandStoryArray}
                 requestNewRecommandStory={requestNewStory}
                 updateSelectedSimilarStory={updateSelectedSimilarStory}
                 isLoading={isLoading}
-                isLoadingSimilar={isLoadingSimilar} // 로딩 상태 전달
+                isLoadingSimilar={isLoadingSimilar}
+                isDarkMode={isDarkMode}
             />
             {/* 하단 입력부 */}
             <div className='w-full max-w-[740px] mx-auto max-h-56 fixed bottom-2 p-2 flex space-x-2'>
@@ -503,12 +514,22 @@ const MobileMain = ({ historyData }) => {
                         setSimilarClassicalArray={setSimilarClassicalArray}
                     />
                 ) : (
-                    <div className='w-full h-full flex flex-col border border-gray-300 rounded-md bg-white shadow-md p-2'>
+                    <div
+                        className={`w-full h-full flex flex-col ${
+                            isDarkMode ? 'border-gray-200' : 'border-gray-300'
+                        } border rounded-md ${
+                            isDarkMode ? 'text-gray-200' : 'bg-white'
+                        } shadow-md p-2`}
+                    >
                         <div className='w-full h-full flex items-center'>
                             <div className='flex-1 h-full'>
                                 <textarea
                                     ref={inputValueRef}
-                                    className='w-full h-full border-none focus:outline-none resize-none bg-transparent overflow-y-auto max-h-28 p-2'
+                                    className={`w-full h-full border-none focus:outline-none resize-none overflow-y-auto max-h-28 p-2 ${
+                                        isDarkMode
+                                            ? 'bg-transparent text-gray-200 placeholder-gray-500'
+                                            : 'bg-transparent text-black placeholder-gray-400'
+                                    }`}
                                     placeholder='예) 귀신이 소년을 괴롭혀서 소년이 울어버리는 이야기'
                                     value={inputValue}
                                     onChange={(e) => {
@@ -534,8 +555,18 @@ const MobileMain = ({ historyData }) => {
                                         className='flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none relative'
                                         onClick={handleStop}
                                     >
-                                        <div className='absolute inset-0 rounded-full border-2 border-gray-300 border-t-black animate-spin w-8 h-8 m-auto'></div>
-                                        <FaStop className='text-xs relative z-10' />
+                                        <div
+                                            className={`absolute inset-0 rounded-full border-2 ${
+                                                isDarkMode
+                                                    ? 'border-gray-200 border-t-white'
+                                                    : 'border-gray-300 border-t-black'
+                                            } animate-spin w-8 h-8 m-auto`}
+                                        ></div>
+                                        <FaStop
+                                            className={`text-xs relative z-10 ${
+                                                isDarkMode ? 'text-gray-200' : ''
+                                            }`}
+                                        />
                                     </button>
                                 ) : (
                                     <>
@@ -544,7 +575,9 @@ const MobileMain = ({ historyData }) => {
                                             className={`flex items-center justify-center p-2 rounded-full transition-colors duration-300 focus:outline-none 
                                         ${
                                             inputValue.trim()
-                                                ? 'bg-black text-white hover:bg-gray-600 active:bg-gray-900'
+                                                ? isDarkMode
+                                                    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400'
+                                                    : 'bg-black text-white hover:bg-gray-600 active:bg-gray-900'
                                                 : 'bg-gray-100 text-gray-700 cursor-not-allowed'
                                         }`}
                                             onClick={handleSubmit}
@@ -561,7 +594,11 @@ const MobileMain = ({ historyData }) => {
 
                                 {editingMessageId && (
                                     <button
-                                        className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
+                                        className={`flex items-center justify-center p-2 -ml-1 ${
+                                            isDarkMode
+                                                ? 'text-gray-200 hover:bg-gray-700 active:bg-gray-600'
+                                                : 'bg-white text-gray-500 hover:bg-gray-300 active:bg-gray-400'
+                                        } rounded-md transition-colors duration-300`}
                                         onClick={handleCancelEdit}
                                     >
                                         취소
@@ -570,27 +607,32 @@ const MobileMain = ({ historyData }) => {
 
                                 {/* Settings 버튼 */}
                                 <button
-                                    className='flex items-center justify-center p-2 -ml-1 bg-white text-gray-500 rounded-md hover:bg-gray-300 active:bg-gray-400 transition-colors duration-300'
+                                    className={`flex items-center justify-center p-2 -ml-1 ${
+                                        isDarkMode
+                                            ? 'text-gray-200 hover:bg-gray-700 active:bg-gray-600'
+                                            : 'bg-white text-gray-500 hover:bg-gray-300 active:bg-gray-400'
+                                    } rounded-md transition-colors duration-300`}
                                     onClick={handleIsDetailVisible}
                                 >
-                                    <img src={FillterIcon} alt='Filter' className='w-5 h-5' />
+                                    <MdDragIndicator className='w-5 h-5' />
                                 </button>
                             </div>
                         </div>
-                        {/* 선택된 태그가 나열되는 위치. 기본 1rem */}
+                        {/* 선택된 태그가 나열되는 위치 */}
                         <div className='h-10 overflow-x-auto whitespace-nowrap'>
-                            {/* 스크롤 속성 적용 및 높이 지정 */}
                             <div className='flex gap-1 p-1'>
-                                {/* p-1 추가 */}
                                 {Object.entries(selectedItems).map(([key, items]) =>
                                     items.map((item, index) => (
-                                        <button // div 대신 button 사용 (삭제 기능 고려)
-                                            key={`${key}-${item}-${index}`} // index 추가해서 key 중복 방지
-                                            className='px-2 py-1 text-xs text-gray-500 bg-gray-200 rounded-full hover:bg-gray-300 focus:outline-none' // hover 효과 추가
-                                            onClick={() => handleDeleteTag(key, item)} // 삭제 기능 추가
+                                        <button
+                                            key={`${key}-${item}-${index}`}
+                                            className={`px-2 py-1 text-xs rounded-full focus:outline-none ${
+                                                isDarkMode
+                                                    ? 'text-gray-200 border border-gray-200 hover:bg-gray-200 hover:text-gray-800'
+                                                    : 'text-gray-500 bg-gray-200 hover:bg-gray-300'
+                                            }`}
+                                            onClick={() => handleDeleteTag(key, item)}
                                         >
                                             {item}
-                                            {/*<TiDelete className="inline" /> 삭제 아이콘 숨김: 영역이 너무 길게 나타남. */}
                                         </button>
                                     )),
                                 )}
@@ -606,6 +648,7 @@ const MobileMain = ({ historyData }) => {
                     setSelectedItems={setSelectedItems}
                     isDetailVisible={isDetailVisible}
                     setIsDetailVisible={handleIsDetailVisible} // handleIsDetailVisible 함수 전달
+                    isDarkMode={isDarkMode}
                 />
             )}
             {/* detail 바텀시트 */}
@@ -623,7 +666,7 @@ const MobileMain = ({ historyData }) => {
                     updateIsOpenSimilarStory={updateIsOpenSimilarStory}
                 />
             )}
-        </>
+        </div>
     )
 }
 

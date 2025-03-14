@@ -5,12 +5,25 @@
 
 /* 전역 스타일 설정 */
 html,
-body {
+body,
+#root {
     margin: 0; /* 기본 여백 제거 */
     padding: 0; /* 기본 패딩 제거 */
     width: 100%; /* 전체 너비 */
     height: 100%; /* 전체 높이 */
     box-sizing: border-box; /* 패딩과 테두리를 너비에 포함 */
+}
+
+body.dark-mode,
+html.dark-mode {
+    background-color: #3d3d3b;
+    color: #e5e5e5;
+}
+
+#root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 토스트팝업용 */

@@ -1,4 +1,5 @@
 import { CiSearch } from 'react-icons/ci'
+import { useTheme } from '../../contexts/ThemeContext'
 
 /**
  * @description 유사한 고전원문
@@ -7,10 +8,18 @@ import { CiSearch } from 'react-icons/ci'
  * @param {Array} aiMessageList AI 메시지 배열
  */
 const ResponseSimilarStory = ({ similarClassicalArray, updateSelectedSimilarStory }) => {
+    const { isDarkMode } = useTheme()
+
     return (
         <>
             {!similarClassicalArray?.noResult && (
-                <div className='flex flex-col gap-2 text-gray-800 rounded-lg py-2 break-words border-b-gray-200 w-full'>
+                <div
+                    className={`flex flex-col gap-2 ${
+                        isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                    } rounded-lg py-2 break-words ${
+                        isDarkMode ? 'border-gray-600' : 'border-b-gray-200'
+                    } w-full`}
+                >
                     {similarClassicalArray && (
                         <div className='w-full'>
                             <h3 className='mb-1 flex items-center'>
@@ -23,19 +32,31 @@ const ResponseSimilarStory = ({ similarClassicalArray, updateSelectedSimilarStor
                         <div className='flex' key={index}>
                             <button
                                 key={`${index} ${story.paragraphNum}`}
-                                className='bg-gray-100 rounded-2xl p-2 w-full text-left max-w-[90%]'
+                                className={`${
+                                    isDarkMode
+                                        ? 'border border-gray-200 text-gray-200'
+                                        : 'bg-gray-100'
+                                } rounded-2xl p-2 w-full text-left max-w-[90%]`}
                                 onClick={() => updateSelectedSimilarStory(story)}
                             >
                                 <p className='mb-1 font-semibold'>
                                     <b>{story.title || '제목 없음'}</b>
                                 </p>
                                 {/* 내용이 2줄이상인 경우에는 ... 처리 */}
-                                <p className='text-sm text-gray-600 line-clamp-2'>
+                                <p
+                                    className={`text-sm ${
+                                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                                    } line-clamp-2`}
+                                >
                                     {story.summary || '내용 없음'}
                                 </p>
                             </button>
                             <button
-                                className='p-1 text-gray-500 hover:text-black focus:outline-none pl-2 max-w-[10%]'
+                                className={`p-1 ${
+                                    isDarkMode
+                                        ? 'text-gray-300 hover:text-white'
+                                        : 'text-gray-500 hover:text-black'
+                                } focus:outline-none pl-2 max-w-[10%]`}
                                 onClick={() => updateSelectedSimilarStory(story)}
                                 aria-label='Edit Message'
                             >
