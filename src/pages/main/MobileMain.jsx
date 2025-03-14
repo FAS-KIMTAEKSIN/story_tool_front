@@ -20,7 +20,7 @@ import RegenerateButton from '../../components/response/RegenerateButton'
  * @param {Object} props
  * - historyData: 히스토리 상세 데이터 (있는 경우 사용)
  */
-const MobileMain = ({ historyData }) => {
+const MobileMain = ({ historyData, isSidebarOpen }) => {
     const inputValueRef = useRef(null)
     const [selectedItems, setSelectedItems] = useState({})
     const [inputValue, setInputValue] = useState('')
@@ -469,7 +469,7 @@ const MobileMain = ({ historyData }) => {
     }, [])
 
     return (
-        <>
+        <div className={`w-full ${isSidebarOpen ? 'md:w-[calc(100%-200px)]' : ''}`}>
             {/* 내용이 없을 때 표시되는 메시지 */}
             {!inputValue.trim() && messageList.length === 0 && (
                 <div className='flex items-center justify-center flex-1 text-center text-gray-500 text-sm italic'>
@@ -623,7 +623,7 @@ const MobileMain = ({ historyData }) => {
                     updateIsOpenSimilarStory={updateIsOpenSimilarStory}
                 />
             )}
-        </>
+        </div>
     )
 }
 

@@ -4,7 +4,7 @@ import { BsLayoutTextSidebarReverse } from 'react-icons/bs'
 import { FaRegEdit } from 'react-icons/fa'
 import { retrieveChatHistoryList } from '../api/history'
 
-const Header = ({ onHistorySelect }) => {
+const Header = ({ onHistorySelect, isSidebarOpen, setIsSidebarOpen }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [historyList, setHistoryList] = useState([])
 
@@ -21,9 +21,13 @@ const Header = ({ onHistorySelect }) => {
             }
         }
         setIsMenuOpen((prev) => !prev)
+        setIsSidebarOpen((prev) => !prev)
     }
 
-    const closeMenu = () => setIsMenuOpen(false)
+    const closeMenu = () => {
+        setIsMenuOpen(false)
+        setIsSidebarOpen(false)
+    }
 
     // 사이드 메뉴에서 히스토리 클릭 시 상세 데이터를 받으면 상위로 전달
     const handleSelectHistory = (historyItem) => {
@@ -46,7 +50,10 @@ const Header = ({ onHistorySelect }) => {
     return (
         <div className='relative w-full'>
             {isMenuOpen && (
-                <div className='fixed inset-0 bg-[#f5f5f5] opacity-50 z-50' onClick={closeMenu} />
+                <div
+                    className='fixed inset-0 bg-[#f5f5f5] opacity-50 z-50 md:hidden'
+                    onClick={closeMenu}
+                />
             )}
             <MobileSideMenu
                 isOpen={isMenuOpen}
