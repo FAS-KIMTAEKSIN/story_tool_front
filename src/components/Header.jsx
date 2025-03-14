@@ -55,7 +55,7 @@ const Header = ({ onHistorySelect }) => {
                 onSelectHistory={handleSelectHistory}
                 setHistoryList={setHistoryList}
             />
-            <header className='fixed top-0 left-0 w-full h-12 bg-white shadow-md px-4 py-3 z-40 flex'>
+            <header className='fixed top-0 left-0 w-full min-w-[340px] h-12 bg-white shadow-md px-4 py-3 z-40 flex'>
                 <div className='relative items-center justify-center w-full flex'>
                     <button
                         onClick={toggleMenu}
