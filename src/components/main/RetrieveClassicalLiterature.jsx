@@ -6,6 +6,7 @@ import ResponseSimilarStory from '../response/ResponseSimilarStory'
 import useRetrieveClassicLiteratureStore from '../../store/useRetrieveClassicLiteratureStore'
 import GenerateChatLoadingIndicator from '../chatOptions/GenerateChatLoadingIndicator'
 import { useTheme } from '../../contexts/ThemeContext'
+import LoadingMessage from '../loading/LoadingMessage'
 
 const RetrieveClassicalLiterature = ({
     messageList,
@@ -208,6 +209,14 @@ const RetrieveClassicalLiterature = ({
                                     isLoadingSimilar &&
                                     lastAiMessageId === message.id && (
                                         <div className='mt-2 pl-2'>
+                                            <div className='w-full'>
+                                                <h3 className='mb-1 flex items-center'>
+                                                    <span className='mr-2'>📖</span>
+                                                    <strong className='text-normal'>
+                                                        유사한 고전 원문
+                                                    </strong>
+                                                </h3>
+                                            </div>
                                             <GenerateChatLoadingIndicator />
                                         </div>
                                     )
@@ -229,7 +238,9 @@ const RetrieveClassicalLiterature = ({
                 {/* 로딩 인디케이터 추가 - 마지막 메시지가 사용자 메시지이고 isGenerating이 true일 때 표시 */}
                 {messageList.length > 0 &&
                     messageList[messageList.length - 1].type === 'user' &&
-                    isGenerating && <GenerateChatLoadingIndicator />}
+                    isGenerating && <LoadingMessage />}
+                {/* 기존에 사용하던 indicator 안 보이게 처리 */}
+                {/* isGenerating && <GenerateChatLoadingIndicator />} */}
             </div>
         </div>
     )
